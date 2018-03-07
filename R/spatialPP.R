@@ -41,7 +41,7 @@ spatialPP <- function(formula, y, X, sp, mesh, smooth = 2,
   #================
   ny <- nrow(y)
   nEdges <- mesh$n
-  Xnames <- colnames(X)
+  Xnames <- names(X)
   
   #==============
   ### Define SPDE
@@ -72,7 +72,7 @@ spatialPP <- function(formula, y, X, sp, mesh, smooth = 2,
   formX <- as.character(formula[[3]])
   sel <- which(Xnames %in% formX)
   
-  if(length(Xsel)==0){
+  if(length(sel)==0){
     stop("No explanatory variables were considered")
   }
   
@@ -81,21 +81,23 @@ spatialPP <- function(formula, y, X, sp, mesh, smooth = 2,
   
   ### Extract covariate values for model estimation
   locEst <- rbind(mesh$loc[,1:2],y)
-  
   XEst <- extract(Xsel, locEst)
-  XPred = extract(Xsel, mesh$loc[,1:2])
+  
+  ### Extract covariate values for model prediction
+  closestEdges <- closestPix(mesh$loc[,1],mesh$loc[,2],Xsel)
+  XPred <- extract(Xsel, closestEdges)
   
   #===========================
   ### Define projection matrix
   #===========================
   ### For inference
-  ProjInf <- inla.spde.make.A(mesh, y)
+  ProjInfer <- inla.spde.make.A(mesh, y)
   
   ### For integration
   ProjInter <- Diagonal(nEdges, rep(1, nEdges))
   
   ### Combine both projection matrix
-  A <- rBind(ProjInter, ProjInf)
+  A <- rBind(ProjInter, ProjInfer)
   
   #=====================
   ### Build stack object
@@ -104,14 +106,14 @@ spatialPP <- function(formula, y, X, sp, mesh, smooth = 2,
                          A = list(1, A), 
                          effects = list(list(Intercept = 1, 
                                              X = XEst), 
-                                        list(i = 1:nNodes)), 
+                                        list(i = 1:nEdges)), 
                          tag = "est")
   
   StackPred <- inla.stack(data = list(y = NA, e = NA),
                               A = list(1, ProjInter), 
                               effects = list(list(Intercept = 1, 
                                                   X = XPred), 
-                                             list(i = 1:nNodes)),
+                                             list(i = 1:nEdges)),
                               tag = "pred")
   
   Stack <- inla.stack(StackEst, StackPred)
@@ -128,5 +130,7 @@ spatialPP <- function(formula, y, X, sp, mesh, smooth = 2,
   
   ### Return model
   res <- list(model = model, Stack = Stack)
+  
+  class(res) <- "spatialPP"
   return(res)
 }

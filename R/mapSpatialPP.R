@@ -2,7 +2,7 @@
 #' 
 #' @description Constructs mean and standard deviation maps for spatial point process models
 #' 
-#' @param model An object of class \code{inla} obtained from the \code{\link{spatialPP}} function.
+#' @param spatialPP An object of class \code{spatialPP} obtained from the \code{\link{spatialPP}} function.
 #' @param mesh An \code{inla.mesh} object.
 #' @param resolution A vector of length 2 defining the number of pixels in rows and columns of the map.
 #' @param type Either "mean", "sd", "0.025quant", "0.5quant", "0.975quant" or "mode". Defines the map to be drawn.
@@ -16,7 +16,7 @@
 #' 
 #' @export
 #' 
-mapSpatialPP <- function(model, mesh, resolution, 
+mapSpatialPP <- function(spatialPP, mesh, resolution, 
                          type = c("mean", "sd", "0.025quant", 
                                   "0.5quant", "0.975quant",
                                   "mode"), sp = NULL){
@@ -29,11 +29,11 @@ mapSpatialPP <- function(model, mesh, resolution,
   mapBasis <- inla.mesh.projector(mesh, dims = resolution)
   
   ### Find the mesh edges on which predictions should be made
-  ID <- inla.stack.index(stk.c, tag="pred")$data
+  ID <- inla.stack.index(spatialPP$Stack, tag="pred")$data
   
   ### Calculate prediction
   mapPred <- inla.mesh.project(mapBasis, 
-                               model$summary.fitted.values[[type]][ID])
+                               spatialPP$model$summary.fitted.values[[type]][ID])
   
   ### Transform map into a raster
   mapRaster <- raster(t(mapPred[,ncol(mapPred):1]),
@@ -42,9 +42,9 @@ mapSpatialPP <- function(model, mesh, resolution,
   
   ### Isolate region of interest
   if(!is.null(sp)){
-    mapMask <- mask(log(mapRaster), RefSP)
+    mapRaster <- mask(mapRaster, RefSP)
   }
   
   ### Return
-  return(mapMask)
+  return(mapRaster)
 }

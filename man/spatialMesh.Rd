@@ -4,7 +4,7 @@
 \alias{spatialMesh}
 \title{Build triangulation for a spatial polygon}
 \usage{
-spatialMesh(sp, coords = NULL, generic = TRUE, ...)
+spatialMesh(sp = NULL, coords = NULL, generic = TRUE, ...)
 }
 \arguments{
 \item{sp}{A \code{SpatialPolygons}, \code{SpatialPolygonsDataFrame}, \code{SpatialLines}, \code{SpatialLinesDataFrame}, \code{SpatialPoints} or \code{SpatialPointsDataFrame} object}

@@ -4,11 +4,11 @@
 \alias{mapSpatialPP}
 \title{Construct maps for spatial point process models}
 \usage{
-mapSpatialPP(model, mesh, resolution, type = c("mean", "sd", "0.025quant",
+mapSpatialPP(spatialPP, mesh, resolution, type = c("mean", "sd", "0.025quant",
   "0.5quant", "0.975quant", "mode"), sp = NULL)
 }
 \arguments{
-\item{model}{An object of class \code{inla} obtained from the \code{\link{spatialPP}} function.}
+\item{spatialPP}{An object of class \code{spatialPP} obtained from the \code{\link{spatialPP}} function.}
 
 \item{mesh}{An \code{inla.mesh} object.}
 

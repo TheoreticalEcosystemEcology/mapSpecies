@@ -34,33 +34,50 @@
 #'
 #' @keywords graphs
 #'
-spatialMesh <- function(sp, coords=NULL, generic = TRUE,...){
+spatialMesh <- function(sp=NULL, coords=NULL, generic = TRUE,...){
   ### General checks
-  if(ncol(coords) != 2){
-    stop("'coords' needs to have two columns")
+  if(!is.null(coords)){
+    if(ncol(coords) != 2){
+      stop("'coords' needs to have two columns")
+    }
   }
-
+  
+  if(is.null(sp) & is.null(coords)){
+    stop("At least one of 'sp' and 'coords' needs to be define")
+  }
+  
   ### Generic construction of the mesh
   if(generic){
-    ### Excluding coordinates
+    ### Excluding only coordinates
     if(is.null(coords)){
       mesh <- inla.mesh.2d(boundary=inla.sp2segment(sp),
                            max.edge=c(1,3), cutoff=c(0.5, 2))
-
-    ### Including coordinates
-    }else{
+    }
+    ### Excluding only sp
+    if(is.null(sp)){
+      mesh <- inla.mesh.2d(loc.domain = coords,
+                           max.edge=c(1,3), cutoff=c(0.5, 2))
+    }
+    
+    ### Considering both coordinates and sp
+    if(!is.null(coords) & !is.null(sp)) {
       mesh <- inla.mesh.2d(boundary=inla.sp2segment(sp),
                            loc.domain = coords,
-                           max.edge=1, cutoff=0.3)
+                           max.edge=c(1,3), cutoff=c(0.5, 2))
     }
   ### Detailled construction of the mesh
   }else{
-    ### Excluding coordinates
+    ### Excluding only coordinates
     if(is.null(coords)){
       mesh <- inla.mesh.2d(boundary=inla.sp2segment(sp), ...)
-
-    ### Including coordinates
-    }else{
+    }
+    ### Excluding only sp
+    if(is.null(sp)){
+      mesh <- inla.mesh.2d(loc.domain = coords, ...)
+    }
+    
+    ### Considering both coordinates and sp
+    if(!is.null(coords) & !is.null(sp)) {
       mesh <- inla.mesh.2d(boundary=inla.sp2segment(sp),
                            loc.domain = coords, ...)
     }
