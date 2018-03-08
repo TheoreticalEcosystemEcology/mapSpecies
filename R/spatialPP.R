@@ -6,7 +6,8 @@
 #' @param y A 2-columns matrix defining the location of where a species was found.
 #' @param X A raster \code{stack} (or \code{brick}) combining all of the explanatory variables to consider.
 #' @param sp A \code{SpatialPolygons} or \code{SpatialPolygonsDataFrame} 
-#' @param mesh An \code{inla.mesh} object
+#' @param weightPP An object of class \code{weightPP}
+#' @param closestPix An object of class \code{closestPix}
 #' @param smooth A single value ranging between 0 and 2 passed to \code{inla.spde2.pcmatern}. It defines the smoothness of the Matern SPDE model. Default is set at 2.
 #' @param prior.range A vector of length 2, with (range0, Prange) specifying that P(ρ < ρ_0) = p_ρ, where ρ is the spatial range of the random field. If Prange is NA, then range0 is used as a fixed range value. Default is c(0.05, 0.01).
 #' @param prior.sigma A vector of length 2, with (sigma0, Psigma) specifying that P(σ > σ_0) = p_σ, where σ is the marginal standard deviation of the field. If Psigma is NA, then sigma0 is used as a fixed range value.  Default is c(1, 0.01).
@@ -24,16 +25,21 @@
 #' @export
 #' 
 #' @keywords models
-spatialPP <- function(formula, y, X, sp, mesh, smooth = 2,
+spatialPP <- function(formula, y, X, sp, weightPP, closestPix, 
+                      smooth = 2,
                       prior.range = c(0.05, 0.01),
                       prior.sigma = c(1, 0.01), ...){
 
-  
   #==============
   ### Basic check
   #==============
   if(as.character(formula[[2]]) != "y"){
     stop("'y' should be used to define the response variable")
+  }
+  
+  ### Check if the mesh in weightPP and closestPix are the same
+  if(!identical(weightPP$mesh, closestPix$mesh)){
+    stop("'weightPP' and 'closestPix' were constructed using different mesh")
   }
   
   #================
@@ -50,11 +56,6 @@ spatialPP <- function(formula, y, X, sp, mesh, smooth = 2,
                               prior.range=prior.range,
                               prior.sigma=prior.range)
 
-  #=====================================
-  ### Calculate weight for interpolation
-  #=====================================
-  weight <- weightPP(sp, mesh)
-  
   #==========================
   ### Define response objects
   #==========================
@@ -63,29 +64,34 @@ spatialPP <- function(formula, y, X, sp, mesh, smooth = 2,
   yPP <- rep(0:1, c(nEdges, ny))
   
   ### weight associated to pseudo-absences (w) and occurrences (0)
-  ePP <- c(w, rep(0, ny))
+  ePP <- c(weightPP$weight, rep(0, ny))
   
   #===========================
   ### Define covariate objects
   #===========================
-  ### Find covariates considered in the formula
-  formX <- as.character(formula[[3]])
-  sel <- which(Xnames %in% formX)
+  ### Organize data into a data.frame
+  ### Note that y here is bogus, it will be removed later
+  refData <-  data.frame(y = 1,X@data@values)
   
-  if(length(sel)==0){
-    stop("No explanatory variables were considered")
-  }
+  ### Organize X so that it follows the formula
+  Xorg <- model.matrix(formula,model.frame(formula, 
+                                           data = refData, 
+                                           na.action = NULL))[,-1]
   
-  ### Extract covariates to use
-  Xsel <- subset(X, sel)
-  
+  ### Construct a brick out of Xorg
+  xyXorg <- cbind(coordinates(X),Xorg)
+  Xbrick <- rasterFromXYZ(xyXorg)
+
   ### Extract covariate values for model estimation
-  locEst <- rbind(mesh$loc[,1:2],y)
-  XEst <- extract(Xsel, locEst)
+  meshLoc <- mesh$loc[,1:2]
+  meshLoc[closestPix$meshSel,] <- coordinates(raster)[closestPix$minPixel,]
+
+  locEst <- SpatialPoints(coords = rbind(meshLoc,y))
+  XEst <- extract(Xbrick, locEst)
   
   ### Extract covariate values for model prediction
-  closestEdges <- closestPix(mesh$loc[,1],mesh$loc[,2],Xsel)
-  XPred <- extract(Xsel, closestEdges)
+  locPred <- SpatialPoints(coords = meshLoc)
+  XPred <- extract(Xbrick, locPred)
   
   #===========================
   ### Define projection matrix
@@ -121,7 +127,7 @@ spatialPP <- function(formula, y, X, sp, mesh, smooth = 2,
   #===============
   ### Build models
   #===============
-  formule <- formula(y ~ 0 + Intercept + X + f(i, model=spde))
+  formule <- formula(y ~ 0 + Intercept + X + f(i, model=SPDE))
   model <- inla(formule, family = "poisson", 
                 data = inla.stack.data(Stack),
                 control.predictor = list(A = inla.stack.A(Stack), 
@@ -129,7 +135,7 @@ spatialPP <- function(formula, y, X, sp, mesh, smooth = 2,
                 E = inla.stack.data(Stack)$e, ...)
   
   ### Return model
-  res <- list(model = model, Stack = Stack)
+  res <- list(model = model, Stack = Stack, mesh = closestPix$mesh)
   
   class(res) <- "spatialPP"
   return(res)

@@ -37,5 +37,7 @@ weightPP <- function(sp, mesh){
   }
   
   ### Return mesh
-  return(weight)
+  res <- list(mesh = mesh, weight = weight)
+  class(res) <- "weightPP"
+  return(res)
 }

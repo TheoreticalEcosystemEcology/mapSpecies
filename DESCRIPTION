@@ -5,13 +5,14 @@ Version: 0.0-1
 Date: 2018-03-06
 Author: F. Guillaume Blanchet
 Maintainer: F. Guillaume Blanchet <guillaume.blanchet@usherbrooke.ca>
-Description: Implement a set of routines to map species distribution in space and through time
+Description: A set of routines to map species distribution in space and through time.
 License: GPL (>= 2)
 Depends:
     R (>= 3.3.0),
     INLA,
     sp,
-    rgeos
+    rgeos,
+    raster
 RoxygenNote: 6.0.1
 Suggests: 
     testthat

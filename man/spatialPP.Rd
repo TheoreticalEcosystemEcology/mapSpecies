@@ -4,8 +4,8 @@
 \alias{spatialPP}
 \title{Spatial point process model}
 \usage{
-spatialPP(formula, y, X, sp, mesh, smooth = 2, prior.range = c(0.05, 0.01),
-  prior.sigma = c(1, 0.01), ...)
+spatialPP(formula, y, X, sp, weightPP, closestPix, smooth = 2,
+  prior.range = c(0.05, 0.01), prior.sigma = c(1, 0.01), ...)
 }
 \arguments{
 \item{formula}{A formula that only relates the response \code{y} and some (or all) of the explanatory variables \code{X}. A paricularity of the is formula is that the response has to be defined as \code{y}.}
@@ -16,7 +16,9 @@ spatialPP(formula, y, X, sp, mesh, smooth = 2, prior.range = c(0.05, 0.01),
 
 \item{sp}{A \code{SpatialPolygons} or \code{SpatialPolygonsDataFrame}}
 
-\item{mesh}{An \code{inla.mesh} object}
+\item{weightPP}{An object of class \code{weightPP}}
+
+\item{closestPix}{An object of class \code{closestPix}}
 
 \item{smooth}{A single value ranging between 0 and 2 passed to \code{inla.spde2.pcmatern}. It defines the smoothness of the Matern SPDE model. Default is set at 2.}
 

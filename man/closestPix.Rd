@@ -2,17 +2,17 @@
 % Please edit documentation in R/closestPix.R
 \name{closestPix}
 \alias{closestPix}
-\title{Find the closest pixel in a raster given a set of coordinates}
+\title{Find the pixel closest to the border of a polygon}
 \usage{
-closestPix(x, y, raster)
+closestPix(sp, mesh, raster)
 }
 \arguments{
-\item{x}{A vector of X coordinates}
+\item{sp}{A \code{SpatialPolygons} or a \code{SpatialPolygonsDataFrame}}
 
-\item{y}{A vector of Y coordinates}
+\item{mesh}{An \code{inla.mesh} object}
 
-\item{raster}{A \code{\link{raster}}. This could also be a \code{\link{stack}} or a \code{\link{brick}}.}
+\item{raster}{A \code{\link{raster}} that includes the explanatory variables to consider for the analysis. This could also be a \code{\link{stack}} or a \code{\link{brick}}.}
 }
 \description{
-Given a set of locations (x and y coordinates), find the location of the closest pixel in a raster. This function is designed to account for locations that are outside the extent of the raster. This function is meant to be used internally.
+Given a set of locations (x and y coordinates), find the location of the closest pixel in a raster, which will be inside the border of polygon. This function is designed to account for locations that are outside the extent of the raster. This function is meant to be used internally.
 }

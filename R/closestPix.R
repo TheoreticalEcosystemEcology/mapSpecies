@@ -1,34 +1,62 @@
-#' @title Find the closest pixel in a raster given a set of coordinates
+#' @title Find the pixel closest to the border of a polygon
 #' 
-#' @description Given a set of locations (x and y coordinates), find the location of the closest pixel in a raster. This function is designed to account for locations that are outside the extent of the raster. This function is meant to be used internally.
+#' @description Given a set of locations (x and y coordinates), find the location of the closest pixel in a raster, which will be inside the border of polygon. This function is designed to account for locations that are outside the extent of the raster. This function is meant to be used internally.
 #' 
-#' @param x A vector of X coordinates
-#' @param y A vector of Y coordinates
-#' @param raster A \code{\link{raster}}. This could also be a \code{\link{stack}} or a \code{\link{brick}}.
+#' @param sp A \code{SpatialPolygons} or a \code{SpatialPolygonsDataFrame}
+#' @param mesh An \code{inla.mesh} object
+#' @param raster A \code{\link{raster}} that includes the explanatory variables to consider for the analysis. This could also be a \code{\link{stack}} or a \code{\link{brick}}.
 #' 
 #' @importFrom raster xmin
 #' @importFrom raster ymin
 #' @importFrom raster xres
 #' @importFrom raster yres
 #'
-closestPix <- function(x, y, raster){
-  ### Find dimension of raster
-  rasterRowCol <- dim(raster)[1:2]
+closestPix <- function(sp, mesh, raster){
+  ### Construct SpatialPoints from mesh edges
+  loc <- SpatialPoints(coords = mesh$loc[,1:2],
+                       proj4string = crs(sp))
   
-  ### Extract location in conceptual raster (assuming all values were available)
-  xPointCon <- round(1 + (x - xmin(raster))/xres(X))
-  yPointCon <- round(1 + (y - ymin(raster))/yres(X))
+  ### Select the edges outside polygon
+  sel <- (!gWithin(loc, sp, byid = TRUE))
   
-  ### Extract location in real raster
-  xLoc <- pmax.int(1, pmin.int(xPointCon, rasterRowCol[1]))
-  yLoc <- pmax.int(1, pmin.int(yPointCon, rasterRowCol[2]))
+  ### Reconstruct SpatialPoints from selected mesh edges
+  loc <- SpatialPoints(coords = mesh$loc[sel,1:2],
+                       proj4string = crs(sp))
+
+  ### build raster to calculate distance
+  distRaster <- raster(xmn = min(mesh$loc[,1])-1, 
+                       xmx = max(mesh$loc[,1])+1, 
+                       ymn = min(mesh$loc[,2])-1, 
+                       ymx = max(mesh$loc[,2])+1,
+                       resolution = res(raster))
   
-  ### Organise to fit in the range of the data
-  xy <- cbind(xLoc/rasterRowCol[1], yLoc/rasterRowCol[2])
+  ### Extend raster to the size of distRaster
+  rasterBroad <- extend(raster,extent(distRaster))
   
-  ### Name columns
-  colnames(xy) <- c("x","y")
+  ### Calculate distance for the whole area for a single point
+  distRasterList <- vector("list", length = sum(sel))
+  
+  for(i in 1:sum(sel)){
+    distRasterize <- rasterize(matrix(mesh$loc[i,1:2],ncol=2),distRaster)
+    distRasterList[[i]] <- distance(distRasterize)
+  }
+  
+  ### Build brick
+  distRasterBrick <- brick(distRasterList)
+  
+  ### Crop to raster size
+  distRasterBrickCrop <- crop(distRasterBrick, extent(raster))
+
+  ### Mask distRaster with sp
+  distMask <- mask(distRasterBrickCrop,sp)
+  pixels <- values(distMask)
+  
+  minPixel <- apply(pixels,2, which.min)
+  names(minPixel)<-NULL
   
   ### return
-  return(xy)
+  res <- list(mesh = mesh, meshLoc = loc, meshSel=sel, minPixel = minPixel)
+  class(res) <- "closestPix"
+  
+  return(res)
 }
