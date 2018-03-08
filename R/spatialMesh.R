@@ -3,7 +3,6 @@
 #' @description Builds a triangulation for a spatial polygon where a set of coordinates (usually fictive) is included to define the size of the triangles. In short, where there are less points the triangles will be larger insurance a more reliable model estimation in areas where there are less sampling efforts.
 #'
 #' @param sp A \code{SpatialPolygons}, \code{SpatialPolygonsDataFrame}, \code{SpatialLines}, \code{SpatialLinesDataFrame}, \code{SpatialPoints} or \code{SpatialPointsDataFrame} object
-#'
 #' @param coords A 2-columns matrix of point locations
 #' @param generic Logical. Defines a generic mesh (see details).
 #' @param \dots Arguments passed to \code{\link{inla.mesh.2d}}
