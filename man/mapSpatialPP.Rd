@@ -4,13 +4,11 @@
 \alias{mapSpatialPP}
 \title{Construct maps for spatial point process models}
 \usage{
-mapSpatialPP(spatialPP, mesh, resolution, type = c("mean", "sd", "0.025quant",
+mapSpatialPP(spatialPP, resolution, type = c("mean", "sd", "0.025quant",
   "0.5quant", "0.975quant", "mode"), sp = NULL)
 }
 \arguments{
 \item{spatialPP}{An object of class \code{spatialPP} obtained from the \code{\link{spatialPP}} function.}
-
-\item{mesh}{An \code{inla.mesh} object.}
 
 \item{resolution}{A vector of length 2 defining the number of pixels in rows and columns of the map.}
 

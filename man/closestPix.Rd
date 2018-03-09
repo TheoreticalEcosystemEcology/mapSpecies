@@ -14,5 +14,5 @@ closestPix(sp, mesh, raster)
 \item{raster}{A \code{\link{raster}} that includes the explanatory variables to consider for the analysis. This could also be a \code{\link{stack}} or a \code{\link{brick}}.}
 }
 \description{
-Given a set of locations (x and y coordinates), find the location of the closest pixel in a raster, which will be inside the border of polygon. This function is designed to account for locations that are outside the extent of the raster. This function is meant to be used internally.
+Given a set of locations (x and y coordinates), find the location of the closest pixel in a raster, which will be inside the border of polygon. This function is designed to account for locations that are outside the extent of the raster.
 }

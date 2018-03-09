@@ -1,6 +1,6 @@
 #' @title Find the pixel closest to the border of a polygon
 #' 
-#' @description Given a set of locations (x and y coordinates), find the location of the closest pixel in a raster, which will be inside the border of polygon. This function is designed to account for locations that are outside the extent of the raster. This function is meant to be used internally.
+#' @description Given a set of locations (x and y coordinates), find the location of the closest pixel in a raster, which will be inside the border of polygon. This function is designed to account for locations that are outside the extent of the raster.
 #' 
 #' @param sp A \code{SpatialPolygons} or a \code{SpatialPolygonsDataFrame}
 #' @param mesh An \code{inla.mesh} object
@@ -11,6 +11,7 @@
 #' @importFrom raster xres
 #' @importFrom raster yres
 #'
+#' @export
 closestPix <- function(sp, mesh, raster){
   ### Construct SpatialPoints from mesh edges
   loc <- SpatialPoints(coords = mesh$loc[,1:2],

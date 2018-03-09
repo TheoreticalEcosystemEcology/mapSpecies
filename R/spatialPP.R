@@ -15,7 +15,7 @@
 #'
 #' @return
 #' 
-#' An object of class \code{\link{inla}}
+#' A list including an \code{\link{inla}} object, an \code{\link{inla.mesh}} object.
 #'
 #' @importFrom INLA inla.spde2.pcmatern
 #' @importFrom raster subset
@@ -46,13 +46,12 @@ spatialPP <- function(formula, y, X, sp, weightPP, closestPix,
   ### Basic objects
   #================
   ny <- nrow(y)
-  nEdges <- mesh$n
-  Xnames <- names(X)
-  
+  nEdges <- weightPP$mesh$n
+
   #==============
   ### Define SPDE
   #==============
-  SPDE <- inla.spde2.pcmatern(mesh=mesh, alpha=smooth,
+  SPDE <- inla.spde2.pcmatern(mesh=weightPP$mesh, alpha=smooth,
                               prior.range=prior.range,
                               prior.sigma=prior.range)
 
@@ -83,8 +82,8 @@ spatialPP <- function(formula, y, X, sp, weightPP, closestPix,
   Xbrick <- rasterFromXYZ(xyXorg)
 
   ### Extract covariate values for model estimation
-  meshLoc <- mesh$loc[,1:2]
-  meshLoc[closestPix$meshSel,] <- coordinates(raster)[closestPix$minPixel,]
+  meshLoc <- weightPP$mesh$loc[,1:2]
+  meshLoc[closestPix$meshSel,] <- coordinates(Xbrick)[closestPix$minPixel,]
 
   locEst <- SpatialPoints(coords = rbind(meshLoc,y))
   XEst <- extract(Xbrick, locEst)
@@ -97,7 +96,7 @@ spatialPP <- function(formula, y, X, sp, weightPP, closestPix,
   ### Define projection matrix
   #===========================
   ### For inference
-  ProjInfer <- inla.spde.make.A(mesh, y)
+  ProjInfer <- inla.spde.make.A(weightPP$mesh, y)
   
   ### For integration
   ProjInter <- Diagonal(nEdges, rep(1, nEdges))
