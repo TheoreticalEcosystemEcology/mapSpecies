@@ -3,7 +3,7 @@
 #' @description Constructs mean and standard deviation maps for spatial point process models
 #' 
 #' @param spatialPP An object of class \code{spatialPP} obtained from the \code{\link{spatialPP}} function.
-#' @param resolution A vector of length 2 defining the number of pixels in rows and columns of the map.
+#' @param dims A vector of length 2 defining the number of pixels in rows and columns of the map.
 #' @param type Either "mean", "sd", "0.025quant", "0.5quant", "0.975quant" or "mode". Defines the map to be drawn.
 #' @param sp A spatial polygon to isolate the region of interest. If none is given, a map is drawn for the entire region covered by the mesh. 
 #' 
@@ -15,7 +15,7 @@
 #' 
 #' @export
 #' 
-mapSpatialPP <- function(spatialPP, resolution, 
+mapSpatialPP <- function(spatialPP, dims, 
                          type = c("mean", "sd", "0.025quant", 
                                   "0.5quant", "0.975quant",
                                   "mode"), sp = NULL){
@@ -25,7 +25,7 @@ mapSpatialPP <- function(spatialPP, resolution,
   }
   
   ### Define map basis
-  mapBasis <- inla.mesh.projector(spatialPP$mesh, dims = resolution)
+  mapBasis <- inla.mesh.projector(spatialPP$mesh, dims = dims)
   
   ### Find the mesh edges on which predictions should be made
   ID <- inla.stack.index(spatialPP$Stack, tag="pred")$data
