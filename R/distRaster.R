@@ -5,9 +5,8 @@
 #' @param sp A \code{SpatialPolygons}, \code{SpatialPolygonsDataFrame}, \code{SpatialLines}, \code{SpatialLinesDataFrame}, \code{SpatialPoints} or \code{SpatialPointsDataFrame} object
 #' @param raster A \code{\link{raster}} that includes the explanatory variables to consider for the analysis. This could also be a \code{\link{stack}} or a \code{\link{brick}}. 
 #' 
-#' @importFrom 
-#' @importFrom 
-#' @importFrom 
+#' @importFrom raster rasterize
+#' @importFrom raster distance
 #' 
 #' @export
 distRaster <- function(sp, raster){

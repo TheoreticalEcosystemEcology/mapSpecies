@@ -2,7 +2,7 @@
 #' 
 #' @description Constructs mean and standard deviation maps for spatial point process models
 #' 
-#' @param spatialPP An object of class \code{spatialPP} obtained from the \code{\link{spatialPP}} function.
+#' @param spatialModel An object of class \code{spatialPP} or of class \code{spatialPA}.
 #' @param dims A vector of length 2 defining the number of pixels in rows and columns of the map.
 #' @param type Either "mean", "sd", "0.025quant", "0.5quant", "0.975quant" or "mode". Defines the map to be drawn.
 #' @param sp A spatial polygon to isolate the region of interest. If none is given, a map is drawn for the entire region covered by the mesh. 
@@ -15,10 +15,10 @@
 #' 
 #' @export
 #' 
-mapSpatialPP <- function(spatialPP, dims, 
-                         type = c("mean", "sd", "0.025quant", 
-                                  "0.5quant", "0.975quant",
-                                  "mode"), sp = NULL){
+mapSpatial <- function(spatialModel, dims, 
+                       type = c("mean", "sd", "0.025quant", 
+                                "0.5quant", "0.975quant",
+                                "mode"), sp = NULL){
   ### General check
   if(length(type) > 1){
     stop("Only one type should be defined")

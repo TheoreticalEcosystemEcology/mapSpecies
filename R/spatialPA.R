@@ -12,6 +12,15 @@
 #' @param prior.sigma A vector of length 2, with (sigma0, Psigma) specifying that P(σ > σ_0) = p_σ, where σ is the marginal standard deviation of the field. If Psigma is NA, then sigma0 is used as a fixed range value.  Default is c(1, 0.01).
 #' @param \dots Arguments passed to \code{inla}
 #'
+#' @importFrom INLA inla.spde2.pcmatern
+#' @importFrom sp coordinates
+#' @importFrom raster rasterFromXYZ
+#' @importFrom sp SpatialPoints
+#' @importFrom raster extract
+#' @importFrom INLA inla.spde.make.A
+#' @importFrom INLA inla.stack
+#' @importFrom INLA inla
+#'
 #' @export
 #' 
 #' @keywords models
@@ -23,7 +32,7 @@ spatialPA <- function(formula, spdf, X,  closestPix,
   #================
   ### Basic objects
   #================
-  ny <- nrow(y)
+  nsmpl <- length(spdf)
   nEdges <- closestPix$mesh$n
   
   #==============
@@ -45,7 +54,7 @@ spatialPA <- function(formula, spdf, X,  closestPix,
   #===========================
   ### Organize data into a data.frame
   ### Note that y here is bogus, it will be removed later
-  refData <- data.frame(y = 1,X@data@values)
+  refData <- data.frame(y = 1, values(X))
   colnames(refData)[1] <- names(spdf)
   
   ### Organize X so that it follows the formula
@@ -61,7 +70,7 @@ spatialPA <- function(formula, spdf, X,  closestPix,
   meshLoc <- closestPix$mesh$loc[,1:2]
   meshLoc[closestPix$meshSel,] <- coordinates(Xbrick)[closestPix$minPixel,]
   
-  locEst <- SpatialPoints(coords = rbind(meshLoc,xy))
+  locEst <- SpatialPoints(coords = xy)
   XEst <- extract(Xbrick, locEst)
   
   ### Extract covariate values for model prediction
@@ -72,10 +81,10 @@ spatialPA <- function(formula, spdf, X,  closestPix,
   ### Construct A matrix
   #=====================
   ### For estimation
-  AEst <- inla.spde.make.A(closestPix$mesh, loc = xy)
-
+  AEst <- inla.spde.make.A(mesh = closestPix$mesh, loc = xy)
+  
   ### For prediction
-  APred<-inla.spde.make.A(Mesh)
+  APred<-inla.spde.make.A(mesh = closestPix$mesh)
   
   #====================================
   ### Build stack object for estimation
@@ -83,14 +92,13 @@ spatialPA <- function(formula, spdf, X,  closestPix,
   ### For estimation
   resp <- unlist(spdf@data)
   names(resp) <- NULL
-  resp <- list(y = resp)
+  resp <- list(y = resp[1:50])
   names(resp) <- names(spdf)
   
-  StackEst <- inla.stack(data = resp, A = list(1, AEst), 
-                         effects = list(list(Intercept = 1, 
-                                             X = XEst), 
-                                        list(i = 1:nEdges)),
-                         tag = "est")
+  StackEst <- inla.stack(data = resp, A = list(AEst, 1), 
+                         effects = list(list(i = 1:nEdges),
+                                             data.frame(Intercept = 1, 
+                                             XEst)), tag = "est")
 
   ### For prediction
   respNA <- list(y = NA)
@@ -108,7 +116,7 @@ spatialPA <- function(formula, spdf, X,  closestPix,
   #===============
   ### Build models
   #===============
-  formule <- formula(y ~ 0 + Intercept + X + f(i, model=SPDE))
+  formule <- formula(paste(names(spdf) ,"~ 0 + Intercept + X + f(i, model=SPDE)"))
   
   model <- inla(formule, family = "binomial", 
                 data = inla.stack.data(Stack),
@@ -116,11 +124,10 @@ spatialPA <- function(formula, spdf, X,  closestPix,
                 control.predictor = list(A = inla.stack.A(Stack), 
                                          link = 1),
                 E = inla.stack.data(Stack)$e, ...)
-  
 
   ### Return model
   res <- list(model = model, Stack = Stack, mesh = closestPix$mesh)
-
   class(res) <- "spatialPA"
+  
   return(res)
 }

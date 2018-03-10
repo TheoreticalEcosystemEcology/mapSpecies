@@ -18,8 +18,14 @@
 #' A list including an \code{\link{inla}} object, an \code{\link{inla.mesh}} object.
 #'
 #' @importFrom INLA inla.spde2.pcmatern
-#' @importFrom raster subset
+#' @importFrom sp coordinates
+#' @importFrom raster rasterFromXYZ
+#' @importFrom sp SpatialPoints
 #' @importFrom raster extract
+#' @importFrom INLA inla.spde.make.A
+#' @importFrom Matrix Diagonal
+#' @importFrom Matrix rBind
+#' @importFrom INLA inla.stack
 #' @importFrom INLA inla
 #' 
 #' @export
@@ -127,6 +133,7 @@ spatialPP <- function(formula, y, X, sp, weightPP, closestPix,
   ### Build models
   #===============
   formule <- formula(y ~ 0 + Intercept + X + f(i, model=SPDE))
+  
   model <- inla(formule, family = "poisson", 
                 data = inla.stack.data(Stack),
                 control.predictor = list(A = inla.stack.A(Stack), 

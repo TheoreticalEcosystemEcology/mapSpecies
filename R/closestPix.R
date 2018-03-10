@@ -6,10 +6,19 @@
 #' @param mesh An \code{inla.mesh} object
 #' @param raster A \code{\link{raster}} that includes the explanatory variables to consider for the analysis. This could also be a \code{\link{stack}} or a \code{\link{brick}}.
 #' 
-#' @importFrom raster xmin
-#' @importFrom raster ymin
-#' @importFrom raster xres
-#' @importFrom raster yres
+#' @importFrom sp SpatialPoints
+#' @importFrom raster crs
+#' @importFrom rgeos gWithin
+#' @importFrom raster raster
+#' @importFrom raster res
+#' @importFrom raster extend
+#' @importFrom raster extent
+#' @importFrom raster rasterize
+#' @importFrom raster distance
+#' @importFrom raster brick
+#' @importFrom raster crop
+#' @importFrom raster mask
+#' @importFrom raster values
 #'
 #' @export
 closestPix <- function(sp, mesh, raster){
