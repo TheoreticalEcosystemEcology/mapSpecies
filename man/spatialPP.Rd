@@ -4,7 +4,7 @@
 \alias{spatialPP}
 \title{Spatial point process model}
 \usage{
-spatialPP(formula, y, X, sp, weightPP, closestPix, smooth = 2,
+spatialPP(formula, y, X, weightPP, closestPix, smooth = 2,
   prior.range = c(0.05, 0.01), prior.sigma = c(1, 0.01), ...)
 }
 \arguments{
@@ -13,8 +13,6 @@ spatialPP(formula, y, X, sp, weightPP, closestPix, smooth = 2,
 \item{y}{A 2-columns matrix defining the location of where a species was found.}
 
 \item{X}{A raster \code{stack} (or \code{brick}) combining all of the explanatory variables to consider.}
-
-\item{sp}{A \code{SpatialPolygons} or \code{SpatialPolygonsDataFrame}}
 
 \item{weightPP}{An object of class \code{weightPP}}
 

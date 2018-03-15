@@ -25,14 +25,14 @@ mapSpatial <- function(spatialModel, dims,
   }
   
   ### Define map basis
-  mapBasis <- inla.mesh.projector(spatialPP$mesh, dims = dims)
+  mapBasis <- inla.mesh.projector(spatialModel$mesh, dims = dims)
   
   ### Find the mesh edges on which predictions should be made
-  ID <- inla.stack.index(spatialPP$Stack, tag="pred")$data
+  ID <- inla.stack.index(spatialModel$Stack, tag="pred")$data
   
   ### Calculate prediction
   mapPred <- inla.mesh.project(mapBasis, 
-                               spatialPP$model$summary.fitted.values[[type]][ID])
+                               spatialModel$model$summary.fitted.values[[type]][ID])
   
   ### Transform map into a raster
   mapRaster <- raster(t(mapPred[,ncol(mapPred):1]),

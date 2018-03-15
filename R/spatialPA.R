@@ -92,22 +92,23 @@ spatialPA <- function(formula, spdf, X,  closestPix,
   ### For estimation
   resp <- unlist(spdf@data)
   names(resp) <- NULL
-  resp <- list(y = resp[1:50])
+  resp <- list(y = resp)
   names(resp) <- names(spdf)
   
   StackEst <- inla.stack(data = resp, A = list(AEst, 1), 
                          effects = list(list(i = 1:nEdges),
-                                             data.frame(Intercept = 1, 
-                                             XEst)), tag = "est")
+                                             list(Intercept = 1, 
+                                             X = XEst)), 
+                         tag = "est")
 
   ### For prediction
   respNA <- list(y = NA)
   names(respNA) <- names(spdf)
   
-  StackPred <- inla.stack(data = respNA, A = list(1, APred), 
-                          effects = list(list(Intercept = 1, 
-                                              X = XPred),
-                                         list(i = 1:nEdges)), 
+  StackPred <- inla.stack(data = respNA, A = list(APred, 1), 
+                          effects = list(list(i = 1:nEdges),
+                                         list(Intercept = 1, 
+                                              X = XPred)), 
                           tag = "pred")
   
   ### Combine both stack objects
