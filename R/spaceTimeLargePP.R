@@ -1,10 +1,11 @@
-#' @title Spatio-temporal point process model
+#' @title Spatio-temporal point process model for large data
 #'
-#' @description Spatio-temporal point process model using INLA. This function is essentially a sophisticated wrapper over \code{inla}
+#' @description Spatio-temporal point process model using INLA designed for data that are composed of many occurrences. This function is essentially a sophisticated wrapper over \code{inla}
 #'
 #' @param formula A formula that only relates the response \code{y} and some (or all) of the explanatory variables \code{X}. A paricularity of the is formula is that the response has to be defined as \code{y}.
 #' @param y A 3-columns matrix defining the x and y coordinates of where a species was found and the last column represents the time (generally in days of the year) when a species was found.
 #' @param X A raster \code{stack} (or \code{brick}) combining all of the explanatory variables to consider.
+#' @param sp A \code{SpatialPolygons} or \code{SpatialPolygonsDataFrame} 
 #' @param weightPP An object of class \code{\link{weightPP}}
 #' @param closestPix An object of class \code{\link{closestPix}}
 #' @param meshTime An object of class \code{\link{inla.mesh.1d}}
@@ -21,11 +22,11 @@
 #' @export
 #' 
 #' @keywords models
-spaceTimePP <- function(formula, y, X, weightPP, closestPix, 
-                        meshTime, smooth = 2,
-                        prior.range = c(0.05, 0.01),
-                        prior.sigma = c(1, 0.01),
-                        prior.pccor = c(0.7, 0.7), ...){
+spaceTimeLargePP <- function(formula, y, X, weightPP, closestPix, 
+                             meshTime, smooth = 2,
+                             prior.range = c(0.05, 0.01),
+                             prior.sigma = c(1, 0.01),
+                             prior.pccor = c(0.7, 0.7), ...){
   
   #==============
   ### Basic check
@@ -57,6 +58,11 @@ spaceTimePP <- function(formula, y, X, weightPP, closestPix,
   nSpaceEdges <- weightPP$mesh$n
   nTimeEdges <- meshTime$n
   
+  #======================================
+  ### Aggregate spatial and temporal data
+  #======================================
+  spaceTimeAgg <- aggData(y, weightPP$mesh, meshTime)
+  
   #==============
   ### Define SPDE
   #==============
@@ -69,19 +75,16 @@ spaceTimePP <- function(formula, y, X, weightPP, closestPix,
   #==========================
   ### Pseudo-absences are the number of edges on the mesh
   ### Occurences are the number of points
-  yPP <- rep(0:1, c(nSpaceEdges * nTimeEdges, ny))
-  
+  yPP <- spaceTimeAgg$Freq
   #---------------------------------------------------------------
   ### weight associated to pseudo-absences (w) and occurrences (0)
   #---------------------------------------------------------------
   #________________________________________________________________
   ### Define spatiotemporal volume to distribute weight across time 
   #________________________________________________________________
-  spaceTimeWeight <- rep(weightPP$weight, nTimeEdges) * 
-                     rep(diag(inla.mesh.fem(meshTime)$c0), 
-                         nSpaceEdges)
+  timeWeight <- diag(inla.mesh.fem(meshTime)$c0)
   
-  ePP <- c(spaceTimeWeight, rep(0, ny))
+  ePP <- weightPP$weight[spaceTimeAgg$space] * timeWeight[spaceTimeAgg$time]
   
   #===========================
   ### Define covariate objects
@@ -108,49 +111,39 @@ spaceTimePP <- function(formula, y, X, weightPP, closestPix,
     meshLoc <- rbind(meshLoc,meshLocBase)
   }
   
-  locEst <- SpatialPoints(coords = rbind(meshLoc,cbind(y$x,y$y)))
+  locEst <- SpatialPoints(coords = meshLoc)
   XEst <- extract(Xbrick, locEst)
-  
-  ### Extract covariate values for model prediction
-  locPred <- SpatialPoints(coords = meshLoc)
-  XPred <- extract(Xbrick, locPred)
-  
+
   #===========================
   ### Define projection matrix
   #===========================
   ### For inference
   ProjInfer <- inla.spde.make.A(weightPP$mesh, 
-                                loc = cbind(y$x, y$y), 
-                                n.group = length(meshTime$n),
-                                group = y$time, 
+                                loc = weightPP$mesh$loc[spaceTimeAgg$space,],
+                                group = spaceTimeAgg$time,
                                 group.mesh = meshTime)
   
-  ### For integration
-  ProjInter <- Diagonal(nSpaceEdges * nTimeEdges, 
-                        rep(1, nSpaceEdges * nTimeEdges))
-  
-  ### Combine both projection matrix
-  A <- rBind(ProjInter, ProjInfer)
+  IDSpaceTime <- inla.spde.make.index('i', nSpaceEdges, n.group=nTimeEdges)
   
   #=====================
   ### Build stack object
   #=====================
   StackEst <- inla.stack(data = list(y = yPP, e = ePP), 
-                         A = list(1, A), 
+                         A = list(1, ProjInfer), 
                          effects = list(list(Intercept = 1, 
-                                             X = XEst), 
-                                        list(i = 1:(nSpaceEdges * nTimeEdges))), 
+                                             X = XEst),
+                                        IDSpaceTime), 
                          tag = "est")
   
   StackPred <- inla.stack(data = list(y = NA, e = NA),
-                          A = list(1, ProjInter), 
+                          A = list(1, ProjInfer), 
                           effects = list(list(Intercept = 1, 
-                                              X = XPred), 
-                                         list(i = 1:(nSpaceEdges * nTimeEdges))),
+                                              X = XEst), 
+                                         IDSpaceTime),
                           tag = "pred")
   
   Stack <- inla.stack(StackEst, StackPred)
-  
+
   #===============
   ### Build models
   #===============
@@ -158,8 +151,9 @@ spaceTimePP <- function(formula, y, X, weightPP, closestPix,
   formule <- formula(y ~ 0 + Intercept + X + f(i, model=SPDE, 
                                                group = i.group, 
                                                control.group = list(model = "ar1",
-                                                                    hyper = list(theta, pcTimeAutoCor))))
-
+                                                                    hyper = list(theta = pcTimeAutoCor))))
+  
+  
   model <- inla(formule, family = "poisson", 
                 data = inla.stack.data(Stack),
                 control.predictor = list(A = inla.stack.A(Stack), 
@@ -172,5 +166,6 @@ spaceTimePP <- function(formula, y, X, weightPP, closestPix,
               meshSpace = closestPix$mesh, meshTime = meshTime)
   
   class(res) <- "spatialTimePP"
+  
   return(res)
 }

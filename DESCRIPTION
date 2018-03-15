@@ -12,7 +12,8 @@ Depends:
     INLA,
     sp,
     rgeos,
-    raster
+    raster,
+    deldir
 RoxygenNote: 6.0.1
 Suggests: 
     testthat
