@@ -1,7 +1,7 @@
 Package: mapSpecies
 Type: Package
 Title: Map species distribution
-Version: 0.0-1
+Version: 0.0-2se
 Date: 2018-03-06
 Author: F. Guillaume Blanchet
 Maintainer: F. Guillaume Blanchet <guillaume.blanchet@usherbrooke.ca>
@@ -14,6 +14,6 @@ Depends:
     rgeos,
     raster,
     deldir
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
 Suggests: 
     testthat

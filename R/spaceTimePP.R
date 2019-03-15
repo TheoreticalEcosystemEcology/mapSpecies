@@ -101,19 +101,19 @@ spaceTimePP <- function(formula, y, X, weightPP, closestPix,
   
   ### Extract covariate values for model estimation
   meshLoc <- weightPP$mesh$loc[,1:2]
-  meshLoc[closestPix$meshSel,] <- coordinates(Xbrick)[closestPix$minPixel,]
   meshLocBase <- meshLoc
   
   for(i in 1:(nTimeEdges-1)){
     meshLoc <- rbind(meshLoc,meshLocBase)
   }
   
-  locEst <- SpatialPoints(coords = rbind(meshLoc,cbind(y$x,y$y)))
+  locEst <- SpatialPoints(coords = rbind(weightPP$mesh$loc[,1:2],
+                                         cbind(y$x,y$y)))
   XEst <- extract(Xbrick, locEst)
   
   ### Extract covariate values for model prediction
-  locPred <- SpatialPoints(coords = meshLoc)
-  XPred <- extract(Xbrick, locPred)
+  locPred <- SpatialPoints(coords = weightPP$mesh$loc[,1:2])
+  XPred <- closestPix$Xmesh
   
   #===========================
   ### Define projection matrix

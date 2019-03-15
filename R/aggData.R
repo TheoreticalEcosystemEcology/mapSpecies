@@ -5,13 +5,16 @@
 #' @importFrom sp SpatialPolygons
 #' @importFrom sp over
 #' 
-aggData <- function(xyt, meshSpace, meshTime){
+aggData <- function(xyt, meshSpace, meshTime=NULL){
   
   #================
   ### Basic objects
   #================
   nSpaceEdges <- meshSpace$n
-  nTimeEdges <- meshTime$n
+  
+  if(!is.null(meshTime)){
+    nTimeEdges <- meshTime$n
+  }
   
   #=========================================
   ### Find Dirichlet tesselation of the mesh
@@ -44,21 +47,32 @@ aggData <- function(xyt, meshSpace, meshTime){
                           spatialPolys), levels=1:nTiles)
 
   ### Organise temporal data for aggregation
-  timeEdges <- sort(c(meshTime$loc[c(1,nTimeEdges)],
-                      meshTime$loc[2:nTimeEdges-1]/2 + 
-                        meshTime$loc[2:nTimeEdges]/2))
+  if(is.null(meshTime)){
+    ### Aggregate over space
+    spaceAggDF <- as.data.frame(table(spaceAgg))
+    spaceAggDF <- apply(spaceAggDF, 2, 
+                          function(x) as.integer(as.character(x)))  
+    
+    ### Return
+    res <- as.data.frame(spaceAggDF)
+    colnames(res)[1] <- c("space")
+  }else{
+    timeEdges <- sort(c(meshTime$loc[c(1,nTimeEdges)],
+                        meshTime$loc[2:nTimeEdges-1]/2 + 
+                          meshTime$loc[2:nTimeEdges]/2))
+    
+    timeAgg <- factor(findInterval(xyt$t, timeEdges), 
+                      levels = 1:nTimeEdges)
+    
+    ### Aggregate over space and time
+    spaceTimeAgg <- as.data.frame(table(spaceAgg, timeAgg))
+    spaceTimeAgg <- apply(spaceTimeAgg, 2, 
+                          function(x) as.integer(as.character(x)))  
   
-  timeAgg <- factor(findInterval(xyt$t, timeEdges), 
-                    levels = 1:nTimeEdges)
-  
-  ### Aggregate over space and time
-  spaceTimeAgg <- as.data.frame(table(spaceAgg, timeAgg))
-  spaceTimeAgg <- apply(spaceTimeAgg, 2, 
-                        function(x) as.integer(as.character(x)))  
-
-  ### Return
-  res <- as.data.frame(spaceTimeAgg)
-  colnames(res)[1:2] <- c("space", "time")
+    ### Return
+    res <- as.data.frame(spaceTimeAgg)
+    colnames(res)[1:2] <- c("space", "time")
+  }
   
   return(res)
 }

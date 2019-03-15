@@ -11,4 +11,7 @@ weightPP(sp, mesh)
 
 \item{mesh}{An \code{inla.mesh} object}
 }
+\description{
+Calculate weight for the integration of the point process
+}
 \keyword{models}

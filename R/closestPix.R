@@ -4,11 +4,14 @@
 #' 
 #' @param sp A \code{SpatialPolygons} or a \code{SpatialPolygonsDataFrame}
 #' @param mesh An \code{inla.mesh} object
-#' @param raster A \code{\link{raster}} that includes the explanatory variables to consider for the analysis. This could also be a \code{\link{stack}} or a \code{\link{brick}}.
+#' @param X A \code{\link{raster}} that includes the explanatory variables to consider for the analysis. This could also be a \code{\link{stack}} or a \code{\link{brick}}.
+#' 
+#' @details 
+#' 
+#' The time it takes to run this function is directly related to the number of vertex (points) in the mesh; more specifically the ones outside the region of interest.
 #' 
 #' @importFrom sp SpatialPoints
 #' @importFrom raster crs
-#' @importFrom rgeos gWithin
 #' @importFrom raster raster
 #' @importFrom raster res
 #' @importFrom raster extend
@@ -21,52 +24,113 @@
 #' @importFrom raster values
 #'
 #' @export
-closestPix <- function(sp, mesh, raster){
+closestPix <- function(sp, mesh, X){
   ### Construct SpatialPoints from mesh edges
   loc <- SpatialPoints(coords = mesh$loc[,1:2],
                        proj4string = crs(sp))
   
-  ### Select the edges outside polygon
-  sel <- (!gWithin(loc, sp, byid = TRUE))
+  ### Extract values from X at loc
+  locVal <- extract(X, loc)
   
-  ### Reconstruct SpatialPoints from selected mesh edges
-  loc <- SpatialPoints(coords = mesh$loc[sel,1:2],
-                       proj4string = crs(sp))
-
-  ### build raster to calculate distance
-  distRaster <- raster(xmn = min(mesh$loc[,1])-1, 
-                       xmx = max(mesh$loc[,1])+1, 
-                       ymn = min(mesh$loc[,2])-1, 
-                       ymx = max(mesh$loc[,2])+1,
-                       resolution = res(raster))
+  #==================================================
+  # If there are some elements in locVal that are NAs
+  #==================================================
+  # Find locVal with NAs
+  locValNA <- which(is.na(locVal[,1]))
+  nlocValNA <- length(locValNA)
   
-  ### Extend raster to the size of distRaster
-  rasterBroad <- extend(raster,extent(distRaster))
-  
-  ### Calculate distance for the whole area for a single point
-  distRasterList <- vector("list", length = sum(sel))
-  
-  for(i in 1:sum(sel)){
-    distRasterize <- rasterize(matrix(mesh$loc[i,1:2],ncol=2),distRaster)
-    distRasterList[[i]] <- distance(distRasterize)
+  if(nlocValNA > 0){
+    loc <- SpatialPoints(coords = coordinates(loc)[locValNA,1:2],
+                         proj4string = crs(sp))
+    
+    for(i in 1:nlocValNA){
+      buffer <- 20000
+      try(locExtract <- extract(X,
+                                loc[i,],
+                                buffer = buffer,
+                                fun = mean), silent = TRUE)
+      
+      while(any(is.na(locExtract))){
+        locExtract <- extract(X, loc[i,], 
+                              buffer = buffer,
+                              fun = mean)
+        buffer <- buffer + buffer
+      }
+      
+      if(!is.null(locExtract)){
+        locVal[locValNA[i],] <- locExtract
+      }
+      
+      locExtract <- NULL
+    }
+    
+    #========================================================
+    # If there are still some elements in locVal that are NAs
+    #========================================================
+    # Find locVal with NAs
+    locValNA <- which(is.na(locVal[,1]))
+    nlocValNA <- length(locValNA)
+    
+    if(nlocValNA > 0){
+      ### Calculate distance for the whole area for a single point
+      distList <- vector("list", length = nlocValNA)
+      
+      distRaster <- raster(xmn = min(mesh$loc[,1]) - 1, 
+                           xmx = max(mesh$loc[,1]) + 1, 
+                           ymn = min(mesh$loc[,2]) - 1, 
+                           ymx = max(mesh$loc[,2]) + 1, 
+                           resolution = res(X))
+      
+      extentMesh <- extent(min(mesh$loc[,1]) - 1, 
+                           max(mesh$loc[,1]) + 1,
+                           min(mesh$loc[,2]) - 1,
+                           max(mesh$loc[,2]) + 1)
+      
+      distRaster <- raster(X)
+      distRaster <- extend(distRaster, extentMesh)
+      distRaster <- crop(distRaster, extentMesh)
+      
+      for(i in 1:nlocValNA){
+        distRasterize <- rasterize(matrix(mesh$loc[locValNA[i],1:2],ncol=2),distRaster)
+        distList[[i]] <- distance(distRasterize)
+      }
+      
+      ### Build brick
+      distBrick <- brick(distList)
+      
+      ### Crop to X size
+      rasterMask <- brick(X, nl = nlocValNA)
+      
+      distExtend <- extend(distBrick, extent(X))
+      distCrop <- crop(distExtend, extent(X))
+      distMask <- mask(distCrop, sp)
+      
+      pixels <- values(distMask)
+      minPixel <- apply(pixels,2, which.min)
+      loc <- SpatialPoints(coords = coordinates(X)[minPixel,],
+                           proj4string = crs(sp))
+      
+      for(i in 1:nlocValNA){
+        buffer <- 5000
+        locExtract <- extract(X,
+                              loc[i,],
+                              buffer = buffer,
+                              fun = mean)
+        
+        while(any(is.na(locExtract))){
+          locExtract <- extract(X, loc[i,], 
+                                buffer = buffer,
+                                fun = mean)
+          buffer <- buffer + buffer
+        }
+        locVal[locValNA[i],] <- locExtract
+      }
+    }
   }
   
-  ### Build brick
-  distRasterBrick <- brick(distRasterList)
-  
-  ### Crop to raster size
-  distRasterBrickCrop <- crop(distRasterBrick, extent(raster))
-
-  ### Mask distRaster with sp
-  distMask <- mask(distRasterBrickCrop,sp)
-  pixels <- values(distMask)
-  
-  minPixel <- apply(pixels,2, which.min)
-  names(minPixel)<-NULL
-  
   ### return
-  res <- list(mesh = mesh, meshLoc = loc, meshSel=sel, minPixel = minPixel)
-  class(res) <- "closestPix"
+  results <- list(mesh = mesh, Xmesh = locVal)
+  class(results) <- "closestPix"
   
-  return(res)
+  return(results)
 }

@@ -16,3 +16,6 @@ closestPix(sp, mesh, raster)
 \description{
 Given a set of locations (x and y coordinates), find the location of the closest pixel in a raster, which will be inside the border of polygon. This function is designed to account for locations that are outside the extent of the raster.
 }
+\details{
+The time it takes to run this function is directly related to the number of vertex (points) in the mesh; more specifically the ones outside the region of interest.
+}

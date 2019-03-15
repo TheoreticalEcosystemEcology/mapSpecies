@@ -30,7 +30,7 @@
 #' @export
 #' 
 #' @keywords models
-spatialPP <- function(formula, y, X, weightPP, closestPix, 
+spacePP <- function(formula, y, X, weightPP, closestPix, 
                       smooth = 2,
                       prior.range = c(0.05, 0.01),
                       prior.sigma = c(1, 0.01), ...){
@@ -87,15 +87,12 @@ spatialPP <- function(formula, y, X, weightPP, closestPix,
   Xbrick <- rasterFromXYZ(xyXorg)
 
   ### Extract covariate values for model estimation
-  meshLoc <- weightPP$mesh$loc[,1:2]
-  meshLoc[closestPix$meshSel,] <- coordinates(Xbrick)[closestPix$minPixel,]
-
-  locEst <- SpatialPoints(coords = rbind(meshLoc,y))
+  locEst <- SpatialPoints(coords = rbind(weightPP$mesh$loc[,1:2],y))
   XEst <- extract(Xbrick, locEst)
   
   ### Extract covariate values for model prediction
-  locPred <- SpatialPoints(coords = meshLoc)
-  XPred <- extract(Xbrick, locPred)
+  locPred <- SpatialPoints(coords = weightPP$mesh$loc[,1:2])
+  XPred <- closestPix$Xmesh
   
   #===========================
   ### Define projection matrix

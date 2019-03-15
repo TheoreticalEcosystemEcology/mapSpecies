@@ -104,7 +104,6 @@ spaceTimeLargePP <- function(formula, y, X, weightPP, closestPix,
   
   ### Extract covariate values for model estimation
   meshLoc <- weightPP$mesh$loc[,1:2]
-  meshLoc[closestPix$meshSel,] <- coordinates(Xbrick)[closestPix$minPixel,]
   meshLocBase <- meshLoc
   
   for(i in 1:(nTimeEdges-1)){
