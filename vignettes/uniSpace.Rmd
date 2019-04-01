@@ -1,0 +1,202 @@
+---
+title: "Univariate species distribution with `mapSpecies`"
+author: "F. Guillaume Blanchet"
+date: "March 2019"
+output:
+  rmarkdown::html_vignette:
+    fig_caption: yes
+    self_contained: true
+    keep_html: yes
+    keep_md: yes
+vignette: |
+  %\VignetteIndexEntry{Single species distribution modelling using presence-absence data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  %\usepackage[utf8]{inputenc}
+bibliography: biblio.bib
+---
+
+```{r, echo=FALSE, message=FALSE, results='hide', purl=FALSE}
+knitr::opts_chunk$set(cache=F,fig.width=5,fig.height=5,dpi=125)
+```
+
+# Introduction
+
+This particular vignette was written to explain how to build univariate spatially constrained species distribution models using `mapSpecies`. In essence, this vignette shows how to use the `uniSpace` function and a few helper functions to build model. 
+
+The modelling approach implemented in the `uniSpace` function is essentially a sophiticated wrapper around the `INLA` R package so that it can be easier to construct spatial models using the stochastic partial differential approach (@lindgren_explicit_2011). As a note, the `uniSpace` function is flexible enough that it can be used with a range of data type assuming that the likelihoods and link functions have been implemented in INLA. The different likelihood that can be used in the `uniSpace` function, can be found by typing `INLA::inla.list.models("likelihood")` while the link functions that can be used can be found by typing `INLA::inla.list.models("link")`.
+
+To illustrate how the models are constructed, the mite data (available through the vegan R package) will be used.
+
+# Load R package for the analysis
+
+```{r, message = FALSE, warning=FALSE}
+library(mapSpecies)
+```
+
+# Data
+
+The data used here comes from @borcard_environmental_1994. For the purpose of this illustration, substrate density and water content (the two continuous variables) have been interpolated across the sampling area with kriging while the class variables were reconstructed from Figure 1 of @borcard_environmental_1994. These data are all available in `mite.envRaster` a `RasterBrick`. As for the species data, the sampled coordinates and the species abundances available in the `vegan` R package were organized in a `SpatialPointDataFrame` and are available in `mite.spdf`.
+
+## Species data
+
+```{r}
+# Load species data
+data(mite.spdf)
+```
+
+## Environmental data
+
+```{r}
+# Environmental data
+data(mite.envRaster)
+```
+
+# Estimate the probability occurrence of a single species
+
+For the sake of this illustration, we will focus solely on the presences and absences of the pseudospecies coded as MEGR. As such, a new `SpatialPointDataFrame` will be constructed to focus on MEGR.
+
+```{r}
+# Presence-absence of MEGR
+MEGR01 <- mite.spdf[7]
+MEGR01@data[,1] <- ifelse(MEGR01@data[,1] > 0, 1, 0)
+```
+
+## Building the mesh
+
+The core of the analyses carried out in this document will be performed using the `uniSpace` function. The first step that needs to be carried out to use this function (and thus to construct a spatially constrained model) is to build a Delaunay triangulation, a mesh, that will serve as a basis to construct the spatial component of the model through an SPDE approach. The technical details about how this procedure works are described in @lindgren_explicit_2011.
+
+Properly choosing the structure of the mesh is essential for the model estimation to be carried out properly. Detailed explanation on the dos and don'ts of constructing a mesh is presented in section 1.3 of the  [R-INLA tutorial on SPDE models](http://inla.r-inla-download.org/r-inla.org/tutorials/spde/html/).
+
+Without repeating all the details presented in the above mentioned tutorial, for the sake of the analyses that will be carried out with the functions in the `mapSpecies` R package, what is important to consider when constructing the mesh is that the triangles in the mesh need to be roughly of the same size. In addition, it is a good idea to include a buffer zone around the sampling area to prevent edge effect problems that may arise.
+
+For our illustration, let's first build a `SpatialPolygons` outlining the sampling area. Note that this step is not necessary to construct the mesh but it often the case that a `SpatialPolygons` object is available to delineate the study area.
+
+```{r}
+poly <- Polygon(matrix(c(0,0,2.6,2.6,0,0,10,10,0,0), 
+                       nrow = 5, ncol = 2))
+spacePoly <- SpatialPolygons(list(Polygons(list(poly), ID = 1)))
+```
+
+Using `spacePoly`, let's construct the mesh. Usually, constructing the mesh requires a few trials to get exactly what is needed for the species understudy. So, do not despair!
+
+The function used to construct the mesh comes directly from `INLA`. If you dig deep into `INLA`, you will find that there existe a few functions to construct meshes. Here we will used `inla.mesh.2d`. At this point it becomes important to read the help file of `inla.mesh.2d` to fully understand the meaning of each argument that can be tweaked to construct the mesh you want to have.
+
+Here are a few notes on some of the arguments of `inla.mesh.2d` that are worth knowing:
+
+`max.edge` : It is a length given in the same units as the coordinates of the studied system.
+
+`cutoff` : It is a length given in the same units as the coordinates of the studied system.
+
+
+Here are a few example of mesh that can be drawn for our study site.
+
+### Using a `SpatialPolygons` as boundaries 
+
+Using only `max.edge` and `offset` to define the mesh, it is possible to obtain a reasonably good mesh.
+
+```{r}
+meshPoly1 <- inla.mesh.2d(boundary = spacePoly, max.edge = 2,
+                          offset = c(2,2))
+meshPoly2 <- inla.mesh.2d(boundary = spacePoly, max.edge = 2,
+                          offset = c(1,1))
+meshPoly3 <- inla.mesh.2d(boundary = spacePoly, max.edge = 0.5,
+                          offset = c(2,2))
+meshPoly4 <- inla.mesh.2d(boundary = spacePoly, max.edge = 0.5,
+                          offset = c(1,1))
+```
+
+```{r, fig.width = 6, fig.height=6}
+par(mfrow = c(2,2), mar = c(1,1,1,1))
+
+plot(meshPoly1, main = "")
+points(coordinates(MEGR01), pch = 19, col = "red")
+
+plot(meshPoly2, main = "")
+points(coordinates(MEGR01), pch = 19, col = "red")
+
+plot(meshPoly3, main = "")
+points(coordinates(MEGR01), pch = 19, col = "red")
+
+plot(meshPoly4, main = "")
+points(coordinates(MEGR01), pch = 19, col = "red")
+```
+
+If computational time is an issue, it is useful to compare the number of edges in the mesh. The larger the number of edges the longer it will take for model estimation. This can be checked with the following code.
+
+```{r}
+meshPoly1$n
+meshPoly2$n
+meshPoly3$n
+meshPoly4$n
+```
+
+For this study `mesh4` is probably a good candidate because it is a fine enough mesh to efficiently capture the spatial variation in the data. In addition, it has a reasonable number of edges, although if it turned out to be too long to run the analysis using such a mesh, it might be worth it to increase the `max.edge` values and thus reduced the number of edges in the analysis.
+
+### Using the sampled locations as a basis
+
+This can be done using the argument `loc`
+```{r}
+meshLoc1 <- inla.mesh.2d(loc = MEGR01, max.edge = 2,
+                         offset = c(1,1))
+meshLoc2 <- inla.mesh.2d(loc = MEGR01, max.edge = 0.5,
+                         offset = c(1,1))
+```
+
+```{r, fig.width = 6, fig.height=3}
+par(mfrow = c(1,2), mar = c(1,1,1,1))
+
+plot(meshLoc1, main = "")
+points(coordinates(MEGR01), pch = 19, col = "red")
+
+plot(meshLoc2, main = "")
+points(coordinates(MEGR01), pch = 19, col = "red")
+
+# Number of edges in the mesh
+meshLoc1$n
+meshLoc2$n
+```
+or the argument `loc.domain`
+
+```{r}
+meshDom1 <- inla.mesh.2d(loc.domain = MEGR01, max.edge = 2,
+                         offset = c(1,1))
+meshDom2 <- inla.mesh.2d(loc.domain = MEGR01, max.edge = 0.6,
+                         offset = c(1,1))
+```
+
+```{r, fig.width = 6, fig.height=3}
+par(mfrow = c(1,2), mar = c(1,1,1,1))
+
+plot(meshDom1, main = "")
+points(coordinates(MEGR01), pch = 19, col = "red")
+
+plot(meshDom2, main = "")
+points(coordinates(MEGR01), pch = 19, col = "red")
+
+# Number of edges in the mesh
+meshDom1$n
+meshDom2$n
+```
+
+The main difference between using `loc` and `loc.domain` is that when using `loc` the samples are at the mesh edges which is not the case when `loc.domain` is used. In this case, it is more more efficient to use `meshDom2` because it allows for more flexibility in the number of edges while keeping the triangle size roughly the same across the full area. In this respect, `meshLoc1` should *never* be used because the triangles size differs importantly across the sampling region.
+
+From this point on, we will use `meshDom2` for the remaining of this illustration. 
+
+### Organizing the explanatory variables
+
+To build a model with `uniSpace` explanatory variables value need to be gathered for all edges of the mesh, even the ones outside the sampling region. This is important to prevent edge effect problems that may arise in model such as the one used here.
+
+The function `explanaMesh` is design to gather this information. In addition, the resulting object includes the `Raster*` of explanatory variable(s) and the mesh.
+
+Note that running the `explanaMesh` function may take a bit of time because it is 
+
+```{r}
+explana <- explanaMesh(sp = spacePoly, 
+                       mesh = meshDom2, 
+                       X = mite.envRaster)
+
+```
+
+
+# References

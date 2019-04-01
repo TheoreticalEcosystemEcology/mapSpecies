@@ -1,8 +1,8 @@
 Package: mapSpecies
 Type: Package
 Title: Map species distribution
-Version: 0.0-2se
-Date: 2018-03-06
+Version: 0.1-0
+Date: 2019-04-01
 Author: F. Guillaume Blanchet
 Maintainer: F. Guillaume Blanchet <guillaume.blanchet@usherbrooke.ca>
 Description: A set of routines to map species distribution in space and through time.
@@ -15,5 +15,6 @@ Depends:
     raster,
     deldir
 RoxygenNote: 6.1.1
+Encoding: UTF-8
 Suggests: 
     testthat
