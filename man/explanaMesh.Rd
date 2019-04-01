@@ -20,4 +20,6 @@ Prepare and organise the data for model prediction. This function is meant to be
 }
 \details{
 The time it takes to run this function is directly related to the number of vertex (points) in the mesh; more specifically the ones outside the region of interest.
+
+Also, this function checks the projections of \code{sp}, \code{mesh} and \code{X} to make sure they match. Note that if all projections are NAs, the function will run but warnings messages will be printed on screen related to this.
 }
