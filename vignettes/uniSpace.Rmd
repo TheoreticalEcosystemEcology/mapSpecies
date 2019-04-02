@@ -54,12 +54,17 @@ data(mite.envRaster)
 
 # Estimate the probability occurrence of a single species
 
-For the sake of this illustration, we will focus solely on the presences and absences of the pseudospecies coded as MEGR. As such, a new `SpatialPointDataFrame` will be constructed to focus on MEGR.
+For the sake of this illustration, we will focus solely on the pseudospecies coded as MEGR. As such, a new `SpatialPointDataFrame` will be constructed to focus on MEGR.
+
+The flexibility of `uniSpace`, the presence-absence as well as the abundance of the species will be considered.
 
 ```{r}
 # Presence-absence of MEGR
 MEGR01 <- mite.spdf[7]
 MEGR01@data[,1] <- ifelse(MEGR01@data[,1] > 0, 1, 0)
+
+# Abundance of MEGR
+MEGR <- mite.spdf[7]
 ```
 
 ## Building the mesh
@@ -160,13 +165,15 @@ or the argument `loc.domain`
 
 ```{r}
 meshDom1 <- inla.mesh.2d(loc.domain = MEGR01, max.edge = 2,
-                         offset = c(1,1))
+                         offset = c(1,1), crs = CRS("+proj=longlat +datum=NAD27"))
 meshDom2 <- inla.mesh.2d(loc.domain = MEGR01, max.edge = 0.6,
                          offset = c(1,1))
+meshDom3 <- inla.mesh.2d(loc.domain = MEGR01, max.edge = 0.5,
+                         offset = c(0.5,0.5))
 ```
 
-```{r, fig.width = 6, fig.height=3}
-par(mfrow = c(1,2), mar = c(1,1,1,1))
+```{r, fig.width = 9, fig.height=3}
+par(mfrow = c(1,3), mar = c(1,1,1,1))
 
 plot(meshDom1, main = "")
 points(coordinates(MEGR01), pch = 19, col = "red")
@@ -174,14 +181,18 @@ points(coordinates(MEGR01), pch = 19, col = "red")
 plot(meshDom2, main = "")
 points(coordinates(MEGR01), pch = 19, col = "red")
 
+plot(meshDom3, main = "")
+points(coordinates(MEGR01), pch = 19, col = "red")
+
 # Number of edges in the mesh
 meshDom1$n
 meshDom2$n
+meshDom3$n
 ```
 
-The main difference between using `loc` and `loc.domain` is that when using `loc` the samples are at the mesh edges which is not the case when `loc.domain` is used. In this case, it is more more efficient to use `meshDom2` because it allows for more flexibility in the number of edges while keeping the triangle size roughly the same across the full area. In this respect, `meshLoc1` should *never* be used because the triangles size differs importantly across the sampling region.
+The main difference between using `loc` and `loc.domain` is that when using `loc` the samples are at the mesh edges which is not the case when `loc.domain` is used. In this case, `meshDom3` is the best mesh because it has a wide enough boundary and the triangle size is roughly the same across the full area. In this respect, `meshLoc1` should *never* be used because the triangles size differs importantly across the sampling region.
 
-From this point on, we will use `meshDom2` for the remaining of this illustration. 
+From this point on, we will use `meshDom3` for this illustration. 
 
 ### Organizing the explanatory variables
 
@@ -189,13 +200,64 @@ To build a model with `uniSpace` explanatory variables value need to be gathered
 
 The function `explanaMesh` is design to gather this information. In addition, the resulting object includes the `Raster*` of explanatory variable(s) and the mesh.
 
-Note that running the `explanaMesh` function may take a bit of time because it is 
+Note that running the `explanaMesh` function may take a bit of time. Also if you run the code below in your console, warning messages will pop simply because no projections were included in either `spacePoly`, `meshDom3` or `mite.envRaster`. This is normal as the coordinate are at very fine scale making a projection essentially useless. 
+
+```{r, warning = FALSE}
+explana <- explanaMesh(sp = spacePoly, 
+                       mesh = meshDom3, 
+                       X = mite.envRaster)
+```
+
+### Building the model
+
+Now that all the pieces are constructed we can estimate the model using `uniSpace`. 
+
+Let's build a logistic, a probit and a complementary log-log model for the presence-absence data. Note that, we included the argument `control.compute`, which is an argument from INLA, to compute a Watanabe-Akaike information criterion (WAIC) to use as a way to compare the different models that will be considered here. 
+
+What is important to be aware at this point is that `uniSpace` is essentially a specialized wrapper around the `inla` function of the R package `INLA`. As such, all arguments that can be passed to `inla` can be passed to `uniSpace`.
+
+```{r, warning = FALSE}
+modelLogit <- uniSpace(MEGR ~ ., spdf = MEGR01,
+                       explanaMesh = explana, family = "binomial",
+                       link = "logit", 
+                       control.compute = list(waic = TRUE))
+
+modelProbit <- uniSpace(MEGR ~ ., spdf = MEGR01,
+                        explanaMesh = explana, family = "binomial",
+                        link = "probit", 
+                        control.compute = list(waic = TRUE))
+
+modelCLogLog <- uniSpace(MEGR ~ ., spdf = MEGR01,
+                         explanaMesh = explana, family = "binomial",
+                         link = "cloglog", 
+                         control.compute = list(waic = TRUE))
+```
+
+Because the WAIC was calculated for the different model, we can compare the model to decide which one is the best to use. 
 
 ```{r}
-explana <- explanaMesh(sp = spacePoly, 
-                       mesh = meshDom2, 
-                       X = mite.envRaster)
+modelLogit$waic$waic
+modelProbit$waic$waic
+modelCLogLog$waic$waic
+```
 
+From the WAIC, we can see that the complementary log-log model is the best one (lowest WAIC). From this point on, we will focus on this model.
+
+### Studying the estimated parameters
+
+Although one of the main interest of species distribution models is to estimate and predict the distribution of species, it is also relevant and important to study the estimated parameters to better understand the importance of the considered explanatory variable in structuring the distribution of the species.
+
+```{r}
+modelProbit$model$summary.fixed
+```
+
+
+### Species distribution map
+
+
+
+```{r}
+#mapSpace 
 ```
 
 
