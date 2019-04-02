@@ -147,6 +147,20 @@ explanaMesh <- function(sp, mesh, X, verbose = TRUE){
     }
   }
   
+  # Convert to data.frame
+  locVal <- as.data.frame(locVal)
+  
+  # Check for factors in X and convert locVal accordingly
+  Xfactor <- unlist(lapply(X@layers,function(x) x@data@isfactor))
+
+  if(any(Xfactor)){
+    for(i in which(Xfactor)){
+      locVal[,i] <- round(locVal[,i])
+      locVal[,i] <- as.factor(locVal[,i])
+      levels(locVal[,i]) <- X@layers[[i]]@data@attributes[[1]]$ID
+    }
+  }
+
   # return
   results <- list(mesh = mesh, Xmesh = locVal, X = X)
   class(results) <- "explanaMesh"
