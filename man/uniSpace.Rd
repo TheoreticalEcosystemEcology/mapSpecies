@@ -9,7 +9,7 @@ uniSpace(formula, spdf, explanaMesh, family = NULL, link = NULL,
   ...)
 }
 \arguments{
-\item{formula}{A formula that only relates the response \code{y} and some (or all) of the explanatory variables \code{X}. A paricularity of the is formula is that the response has to be defined as \code{y}.}
+\item{formula}{A formula that relates the response and some (or all) of the explanatory variables \code{X}. The name of the response variable is the name of the variable in \code{spdf}.}
 
 \item{spdf}{A SpatialPointsDataFrame with a vector of 0 and 1 in the data.frame part \code{stack} (or \code{brick}) combining all of the explanatory variables to consider.}
 
