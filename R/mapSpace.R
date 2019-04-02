@@ -12,6 +12,8 @@
 #' @importFrom INLA inla.stack.index
 #' @importFrom raster raster
 #' @importFrom raster mask
+#'
+#' @keywords hplot
 #' 
 #' @export
 #' 
@@ -25,7 +27,17 @@ mapSpace <- function(modelSpace, dims,
   }
   
   ### Define map basis
-  mapBasis <- inla.mesh.projector(attributes(modelSpace)$mesh, dims = dims)
+  if(is.null(sp)){
+    mapBasis <- inla.mesh.projector(attributes(modelSpace)$mesh,
+                                    dims = dims,
+                                    crs = crs(attributes(modelSpace)$spdf))
+  }else{
+    mapBasis <- inla.mesh.projector(attributes(modelSpace)$mesh,
+                                    dims = dims,
+                                    xlim = c(xmin(sp), xmax(sp)),
+                                    ylim = c(ymin(sp), ymax(sp)),
+                                    crs = crs(attributes(modelSpace)$spdf))
+  }
   
   ### Find the mesh edges on which predictions should be made
   ID <- inla.stack.index(attributes(modelSpace)$Stack, tag="pred")$data
@@ -38,11 +50,6 @@ mapSpace <- function(modelSpace, dims,
   mapRaster <- raster(t(mapPred[,ncol(mapPred):1]),
                       xmn = min(mapBasis$x), xmx = max(mapBasis$x), 
                       ymn = min(mapBasis$y), ymx = max(mapBasis$y))
-  
-  ### Isolate region of interest
-  if(!is.null(sp)){
-    mapRaster <- mask(mapRaster, sp)
-  }
   
   ### Return
   return(mapRaster)
