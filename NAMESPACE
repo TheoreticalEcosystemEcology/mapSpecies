@@ -2,8 +2,8 @@
 
 export(distRaster)
 export(explanaMesh)
+export(mapSpace)
 export(mapSpaceTime)
-export(mapSpatial)
 export(ppSpace)
 export(ppSpaceLarge)
 export(ppSpaceTime)
