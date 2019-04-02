@@ -1,7 +1,7 @@
 #' @title Univariate spatial model
 #' @name uniSpace
 #'
-#' @description Spatial model for presence absence data using INLA. This function is essentially a sophisticated wrapper over \code{inla}
+#' @description Spatial model for presence-absence data using INLA. This function is essentially a sophisticated wrapper over \code{inla}
 #'
 #' @param formula A formula that relates the response and some (or all) of the explanatory variables \code{X}. The name of the response variable is the name of the variable in \code{spdf}.
 #' @param spdf A SpatialPointsDataFrame with a vector of 0 and 1 in the data.frame part \code{stack} (or \code{brick}) combining all of the explanatory variables to consider.
@@ -175,8 +175,8 @@ uniSpace <- function(formula, spdf,  explanaMesh,
   ### add a series of attributes to the result object
   attributes(model) <- list(formula = formula,
                             spdf = spdf,
-                            X = XEst,
-                            Xmesh = XPred,
+                            XEst = XEst,
+                            XPred = XPred,
                             mesh = explanaMesh$mesh,
                             Stack = Stack)
   names(model) <- nameRes
