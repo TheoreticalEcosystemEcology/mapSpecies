@@ -12,6 +12,8 @@
 #' @importFrom INLA inla.stack.index
 #' @importFrom raster raster
 #' @importFrom raster mask
+#'
+#' @keywords hplot
 #' 
 #' @export
 #' 

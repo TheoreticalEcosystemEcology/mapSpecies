@@ -27,6 +27,8 @@
 #' @importFrom raster mask
 #' @importFrom raster values
 #'
+#' @keywords manip
+#'
 #' @export
 explanaMesh <- function(sp, mesh, X, verbose = TRUE){
   #=================
