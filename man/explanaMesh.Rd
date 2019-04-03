@@ -23,3 +23,4 @@ The time it takes to run this function is directly related to the number of vert
 
 Also, this function checks the projections of \code{sp}, \code{mesh} and \code{X} to make sure they match. Note that if all projections are NAs, the function will run but warnings messages will be printed on screen related to this.
 }
+\keyword{manip}

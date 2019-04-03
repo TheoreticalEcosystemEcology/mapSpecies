@@ -19,3 +19,4 @@ mapSpaceTime(spaceTimeModel, dims, type = c("mean", "sd", "0.025quant",
 \description{
 Constructs mean and standard deviation maps for spatial point process models
 }
+\keyword{hplot}

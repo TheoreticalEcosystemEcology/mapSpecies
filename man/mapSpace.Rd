@@ -19,3 +19,4 @@ mapSpace(modelSpace, dims, type = c("mean", "sd", "0.025quant",
 \description{
 Constructs mean, standard deviation, and quantile (0.025, 0.5 and 0.975) maps for models calculated using \code{\link{uniSpace}} and \code{\link{ppSpace}}
 }
+\keyword{hplot}
