@@ -27,8 +27,20 @@ uniSpace(formula, spdf, explanaMesh, family = NULL, link = NULL,
 
 \item{\dots}{Arguments passed to \code{inla}}
 }
+\value{
+An object of class \code{uniSpace} that includes a model output, which is the model output of INLA.
+
+In addition, it includes a series of attributes:
+
+  \item{\code{formula}}{The formula used to construct the model}
+  \item{\code{spdf}}{The \code{SpatialPointDataFrame} object that includes the sample location and associated data for the modelled species.}
+  \item{\code{XEst}}{A matrix with all the explanatory variables used to construct the model. If there were factors in the original set of explanatory variables \code{X}, in \code{XEst}, they were decomposed into dummy variables. The values in \code{XEst} are the one from the sampled location.}
+  \item{\code{XPred}}{A matrix with all the explanatory variables used to construct the model. If there were factors in the original set of explanatory variables \code{X}, in \code{XPred}, they were decomposed into dummy variables. The values in \code{XPred} were gathered at the mesh edges.}
+  \item{\code{mesh}}{An object of class \code{inla.mesh}. It is the mesh used to construct the model.}
+  \item{\code{Stack}}{An object of class \code{inla.data.stack}. It is a stack object constructed internally.}
+}
 \description{
-Spatial model for presence absence data using INLA. This function is essentially a sophisticated wrapper over \code{inla}
+Spatial model for presence-absence data using INLA. This function is essentially a sophisticated wrapper over \code{inla}
 }
 \details{
 The underlying model used by this function is a generalized spatial linear model using the cloglog link function. The idea to use the cloglog link function instead of another link function (e.g. logit or probit) is that it is more flexible.

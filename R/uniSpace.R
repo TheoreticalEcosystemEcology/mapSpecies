@@ -23,7 +23,6 @@
 #' 
 #' In addition, it includes a series of attributes:
 #' 
-#' \itemize{
 #'	  \item{\code{formula}}{The formula used to construct the model}
 #'	  \item{\code{spdf}}{The \code{SpatialPointDataFrame} object that includes the sample location and associated data for the modelled species.}
 #'	  \item{\code{XEst}}{A matrix with all the explanatory variables used to construct the model. If there were factors in the original set of explanatory variables \code{X}, in \code{XEst}, they were decomposed into dummy variables. The values in \code{XEst} are the one from the sampled location.}
