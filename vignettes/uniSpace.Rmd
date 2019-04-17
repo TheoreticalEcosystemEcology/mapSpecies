@@ -18,6 +18,8 @@ bibliography: biblio.bib
 
 ```{r, echo=FALSE, message=FALSE, results='hide', purl=FALSE}
 knitr::opts_chunk$set(cache=F,fig.width=5,fig.height=5,dpi=125)
+
+set.seed(123)
 ```
 
 # Introduction
@@ -295,25 +297,25 @@ As explained before, in addition of plotting the average model, it can be valuab
 
 ```{r}
 # Mean
-mapMean <- mapSpace(modelOffset,
-                    dims = dim(mite.envRaster)[1:2],
-                    type = "mean",
-                    sPoly = spacePoly)
+mapOffsetMean <- mapSpace(modelOffset,
+                          dims = dim(mite.envRaster)[1:2],
+                          type = "mean",
+                          sPoly = spacePoly)
 # Standard deviation
-mapSd <- mapSpace(modelOffset,
-                    dims = dim(mite.envRaster)[1:2],
-                    type = "sd",
-                    sPoly = spacePoly)
+mapOffsetSd <- mapSpace(modelOffset,
+                        dims = dim(mite.envRaster)[1:2],
+                        type = "sd",
+                        sPoly = spacePoly)
 # Lower boundary of the 95% confidence interval
-map.025 <- mapSpace(modelOffset,
-                    dims = dim(mite.envRaster)[1:2],
-                    type = "0.025quant",
-                    sPoly = spacePoly)
+mapOffset.025 <- mapSpace(modelOffset,
+                          dims = dim(mite.envRaster)[1:2],
+                          type = "0.025quant",
+                          sPoly = spacePoly)
 # Upper boundary of the 95% confidence interval
-map.975 <- mapSpace(modelOffset,
-                    dims = dim(mite.envRaster)[1:2],
-                    type = "0.975quant",
-                    sPoly = spacePoly)
+mapOffset.975 <- mapSpace(modelOffset,
+                          dims = dim(mite.envRaster)[1:2],
+                          type = "0.975quant",
+                          sPoly = spacePoly)
 ```
 
 ```{r,  fig.width = 6, fig.height=8}
@@ -323,16 +325,16 @@ colo <- colorRampPalette(c("grey90", "steelblue4",
                            "gold", "red1", "red4"))(200)
 
 par(mfrow = c(2,2))
-plot(mapMean, zlim = c(0, 1), col = colo,
+plot(mapOffsetMean, zlim = c(0, 1), col = colo,
      axes = FALSE, box = FALSE, main = "Mean")
 
-plot(mapSd, zlim = c(0, 1), col = colo,
+plot(mapOffsetSd, zlim = c(0, 1), col = colo,
      axes = FALSE, box = FALSE, main = "Sd")
 
-plot(map.025, zlim = c(0, 1), col = colo,
+plot(mapOffset.025, zlim = c(0, 1), col = colo,
      axes = FALSE, box = FALSE, main = "2.5%")
 
-plot(map.975, zlim = c(0, 1), col = colo,
+plot(mapOffset.975, zlim = c(0, 1), col = colo,
      axes = FALSE, box = FALSE, main = "97.5")
 ```
 
