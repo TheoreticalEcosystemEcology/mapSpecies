@@ -22,6 +22,7 @@ ppWeight <- function(sPoly, mesh){
   ### Construct a dual mesh from the triangular mesh
   #-------------------------------------------------
   dmesh <- inla.mesh.dual(mesh)
+  crs(dmesh) <- mesh$crs
   
   #--------------------------------------------------------------
   ### Find the intersection between the polygons in the dual mesh
