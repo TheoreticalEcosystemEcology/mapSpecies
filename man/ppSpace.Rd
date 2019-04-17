@@ -4,15 +4,18 @@
 \alias{ppSpace}
 \title{Spatial point process model}
 \usage{
-ppSpace(formula, y, weightPP, explanaMesh, smooth = 2,
-  prior.range = c(0.05, 0.01), prior.sigma = c(1, 0.01), ...)
+ppSpace(formula, sPoints, ppWeight, explanaMesh, smooth = 2,
+  prior.range = c(0.05, 0.01), prior.sigma = c(1, 0.01),
+  many = FALSE, ...)
 }
 \arguments{
 \item{formula}{A formula that only relates the response \code{y} and some (or all) of the explanatory variables \code{X}. A paricularity of the is formula is that the response has to be defined as \code{y}.}
 
-\item{y}{A 2-columns matrix defining the location of where a species was found.}
+\item{sPoints}{A \code{SpatialPoint*} object that includes the sample location of the modelled species.}
 
-\item{weightPP}{An object of class \code{weightPP}}
+\item{ppWeight}{An object of class \code{ppWeight}}
+
+\item{explanaMesh}{An object of class \code{explanaMesh}}
 
 \item{smooth}{A single value ranging between 0 and 2 passed to \code{inla.spde2.pcmatern}. It defines the smoothness of the Matern SPDE model. Default is set at 2.}
 
@@ -20,14 +23,26 @@ ppSpace(formula, y, weightPP, explanaMesh, smooth = 2,
 
 \item{prior.sigma}{A vector of length 2, with (sigma0, Psigma) specifying that P(σ > σ_0) = p_σ, where σ is the marginal standard deviation of the field. If Psigma is NA, then sigma0 is used as a fixed range value.  Default is c(1, 0.01).}
 
-\item{\dots}{Arguments passed to \code{inla}}
+\item{many}{Logical. Whether the data in \code{sPoints} is large or not. See details. Default is \code{FALSE}.}
 
-\item{dataPred}{An object of class \code{explanaMesh}}
+\item{\dots}{Arguments passed to \code{inla}}
 }
 \value{
-A list including an \code{\link{inla}} object, an \code{\link{inla.mesh}} object.
+An object of class \code{ppSpace} that includes a model output, which is the model output of INLA.
+
+In addition, it includes a series of attributes:
+
+  \item{\code{formula}}{The formula used to construct the model}
+  \item{\code{sPointsDF}}{A \code{SpatialPointDataFrame} object that includes the sample location and associated data of the modelled species.}
+  \item{\code{XEst}}{A matrix with all the explanatory variables used to construct the model. If there were factors in the original set of explanatory variables \code{X}, in \code{XEst}, they were decomposed into dummy variables. The values in \code{XEst} are the one from the sampled location.}
+  \item{\code{XPred}}{A matrix with all the explanatory variables used to construct the model. If there were factors in the original set of explanatory variables \code{X}, in \code{XPred}, they were decomposed into dummy variables. The values in \code{XPred} were gathered at the mesh edges. When \code{many = TRUE}, the values in \code{XPred} are exactly the same as the values in \code{XEst}}
+  \item{\code{mesh}}{An object of class \code{inla.mesh}. It is the mesh used to construct the model.}
+  \item{\code{Stack}}{An object of class \code{inla.data.stack}. It is a stack object constructed internally.}
 }
 \description{
-Spatial point process model using INLA. This function is essentially a sophisticated wrapper over \code{inla}
+Spatial point process model using INLA. This function is essentially a specialized wrapper over \code{inla}
+}
+\details{
+If the argument \code{many = TRUE}, the etimation and the prediction will be carried out solely at the mesh edges, whereas when \code{many = FALSE} the estimation will be carried out at the mesh edges and at the sampled location. When the number of samples is very large (e.g. tens of thousands of samples or more) using \code{many = TRUE} can be much more computationally efficient. However, there is a precision trade-off. When \code{many = TRUE}, each sample is associated to an edge and the model is constructed using the number of samples associated to an edge as an importance value. In doing so, some spatial precision is lost at the expense of speed.
 }
 \keyword{models}

@@ -3,7 +3,7 @@
 #' 
 #' @description Prepare and organise the data for model prediction. This function is meant to be used as a starting point for all spatial and spatiotemporal model in this package. This function also gathers explanatory variables values associated to the edges within and outside the area of interest.
 #' 
-#' @param sp A \code{SpatialPolygons} or a \code{SpatialPolygonsDataFrame}
+#' @param sPoly A \code{\link[sp]{SpatialPolygons}} or a \code{\link[sp]{SpatialPolygonsDataFrame}} defining the sampling region.
 #' @param mesh An \code{inla.mesh} object
 #' @param X A \code{\link{raster}} that includes the explanatory variables to consider for the analysis. This could also be a \code{\link{stack}} or a \code{\link{brick}}.
 #' @param verbose Logical. Whether or not to print on the screen (five times) the number of edges that have been assigned values.
@@ -12,9 +12,14 @@
 #' 
 #' The time it takes to run this function is directly related to the number of vertex (points) in the mesh; more specifically the ones outside the region of interest.
 #' 
-#' Also, this function checks the projections of \code{sp}, \code{mesh} and \code{X} to make sure they match. Note that if all projections are NAs, the function will run but warnings messages will be printed on screen related to this. 
+#' Also, this function checks the projections of \code{sPoly}, \code{mesh} and \code{X} to make sure they match. Note that if all projections are NAs, the function will run but warnings messages will be printed on screen related to this. 
+#' 
+#' @return 
+#' 
+#' An object of class \code{explanaMesh} that includes a list of all the objects used as arguments (except for the verbose call) and \code{Xmesh} the values of the explanatory variables for all edges of the mesh.
 #' 
 #' @importFrom sp SpatialPoints
+#' @importFrom sp bbox
 #' @importFrom raster crs
 #' @importFrom raster raster
 #' @importFrom raster res
@@ -26,19 +31,27 @@
 #' @importFrom raster crop
 #' @importFrom raster mask
 #' @importFrom raster values
+#' @importFrom raster xyFromCell
+#' @importFrom raster ncell
+#' @importFrom raster cellFromXY
+#' @importFrom raster xmin
+#' @importFrom raster ymin
+#' @importFrom raster xmax
+#' @importFrom raster ymax
+#' @importFrom stats dist
 #'
 #' @keywords manip
 #'
 #' @export
-explanaMesh <- function(sp, mesh, X, verbose = TRUE){
+explanaMesh <- function(sPoly, mesh, X, verbose = TRUE){
   #=================
   # Check projection
   #=================
   # Extract projection of objects
-  projSp <- crs(sp)@projargs
+  projSp <- crs(sPoly)@projargs
   projX <- crs(X)@projargs
   
-  if(is.na(crs(mesh))){
+  if(is.null(mesh$crs)){
     projMesh <- NA
   }else{
     projMesh <- mesh$crs@projargs
@@ -101,7 +114,7 @@ explanaMesh <- function(sp, mesh, X, verbose = TRUE){
   
   # Construct SpatialPoints from mesh edges
   loc <- SpatialPoints(coords = new.pts,
-                       proj4string = crs(sp))
+                       proj4string = crs(sPoly))
   
   # Extract values from X at loc
   locVal <- extract(X, loc)
@@ -115,7 +128,7 @@ explanaMesh <- function(sp, mesh, X, verbose = TRUE){
   
   if(nlocValNA > 0){
     loc <- SpatialPoints(coords = coordinates(loc)[locValNA,1:2],
-                         proj4string = crs(sp))
+                         proj4string = crs(sPoly))
     
     for(i in 1:nlocValNA){
       extX <- extent(X)
@@ -153,6 +166,10 @@ explanaMesh <- function(sp, mesh, X, verbose = TRUE){
   locVal <- as.data.frame(locVal)
   
   # Check for factors in X and convert locVal accordingly
+  if(class(X) =="RasterBrick"){
+    X <- stack(X)
+  }
+  
   Xfactor <- unlist(lapply(X@layers,function(x) x@data@isfactor))
 
   if(any(Xfactor)){
@@ -164,7 +181,7 @@ explanaMesh <- function(sp, mesh, X, verbose = TRUE){
   }
 
   # return
-  results <- list(mesh = mesh, Xmesh = locVal, X = X)
+  results <- list(sPoly = sPoly, mesh = mesh, X = X, Xmesh = locVal)
   class(results) <- "explanaMesh"
   
   return(results)

@@ -1,7 +1,7 @@
 ---
 title: "Univariate species distribution models with `mapSpecies`"
 author: "F. Guillaume Blanchet"
-date: "March 2019"
+date: "April 2019"
 output:
   rmarkdown::html_vignette:
     fig_caption: yes
@@ -50,7 +50,13 @@ data(mite.spdf)
 ```{r}
 # Environmental data
 data(mite.envRaster)
+
+# Scale continuous variables
+mite.envRaster@layers[[1]] <- scale(mite.envRaster@layers[[1]])
+mite.envRaster@layers[[2]] <- scale(mite.envRaster@layers[[2]])
 ```
+
+Note that if some explanatory variables are factors, to preserve there structure as factors, a `RasterStack` needs to be used because a `RasterBrick` will convert the data into a matrix and the factor level information will be lost.
 
 ## Sampling region
 
@@ -59,7 +65,8 @@ For our illustration, let's also build a `SpatialPolygons` outlining the samplin
 ```{r}
 poly <- Polygon(matrix(c(0,0,2.6,2.6,0,0,10,10,0,0), 
                        nrow = 5, ncol = 2))
-spacePoly <- SpatialPolygons(list(Polygons(list(poly), ID = 1)))
+spacePoly <- SpatialPolygons(list(Polygons(list(poly),ID = 1)),
+                             proj4string = crs(mite.envRaster))
 ```
 
 # Estimate the probability occurrence of a single species
@@ -84,13 +91,16 @@ For our illustration, let's use the following mesh.
 
 ```{r}
 Mesh <- inla.mesh.2d(loc.domain = MEGR01, max.edge = 0.5,
-                     offset = c(0.5,0.5))
+                     min.angle = 20,
+                     cutoff = 0.5,
+                     offset = c(0.5,0.5),
+                     crs = crs(mite.envRaster))
 ```
 
 ```{r, fig.width = 3, fig.height=3}
 par(mar = c(1,1,1,1))
 
-plot(Mesh, main = "")
+plot(Mesh, main = "", asp = 1)
 points(coordinates(MEGR01), pch = 19, col = "red")
 
 # Number of edges in the mesh
@@ -103,24 +113,24 @@ To build a model with `uniSpace` explanatory variables value need to be gathered
 
 The function `explanaMesh` is design to gather this information. In addition, the resulting object includes the `Raster*` of explanatory variable(s) and the mesh.
 
-Note that running the `explanaMesh` function may take a bit of time. Also if you run the code below in your console, warning messages will pop simply because no projections were included in either `spacePoly`, `mesh` or `mite.envRaster`. This is normal as the coordinate are at very fine scale making a projection essentially useless. 
+Note that running the `explanaMesh` function may take a bit of time. 
 
 ```{r, warning = FALSE}
-explana <- explanaMesh(sp = spacePoly, 
+explana <- explanaMesh(sPoly = spacePoly, 
                        mesh = Mesh, 
                        X = mite.envRaster)
 ```
 
 ## Building the model
 
-Now that all the pieces are constructed we can estimate the model using `uniSpace`. 
+Now that all the pieces are organized properly we can estimate the model using `uniSpace`. 
 
-Let's build a logistic for the presence-absence. Note that, we included the argument `control.compute`, an argument from INLA, to compute a Watanabe-Akaike information criterion (WAIC). Usually, the WAIC is ushed to compare different models, however here it was included simply to show that `uniSpace` will pass additional arguments to the `inla` function,. 
+Let's build a logistic model for the presence-absence. Note that, we included the argument `control.compute`, an argument from INLA, to compute a Watanabe-Akaike information criterion (WAIC). Usually, the WAIC is used to compare different models, however here it was included simply to show that `uniSpace` will pass additional arguments to the `inla` function. 
 
 What is important to be aware at this point is that `uniSpace` is essentially a specialized wrapper around the `inla` function of the R package `INLA`. As such, all arguments that can be passed to `inla` can be passed to `uniSpace`.
 
 ```{r, warning = FALSE}
-modelLogit <- uniSpace(MEGR ~ ., spdf = MEGR01,
+modelLogit <- uniSpace(MEGR ~ ., sPointsDF = MEGR01,
                        explanaMesh = explana, family = "binomial",
                        link = "logit", 
                        control.compute = list(waic = TRUE))
@@ -128,7 +138,7 @@ modelLogit <- uniSpace(MEGR ~ ., spdf = MEGR01,
 
 ## Studying the estimated parameters
 
-Although one of the main interest of species distribution models is to estimate and predict the distribution of species, it is also relevant and important to study the estimated parameters to better understand the importance of the considered explanatory variable in structuring the distribution of the species. If we focus on the logistic model for the moment, we can study these parameters using the `summary` function
+Although one of the main interest of species distribution models is to estimate and predict the distribution of species, it is also relevant and important to study the estimated parameters to better understand the importance of the considered explanatory variable in structuring the distribution of the species. We can study these parameters using the `summary` function
  
 ```{r}
 summary(modelLogit)
@@ -143,22 +153,167 @@ To get a good idea of the quality of the map resulting from the model, in additi
 mapMean <- mapSpace(modelLogit,
                     dims = dim(mite.envRaster)[1:2],
                     type = "mean",
-                    sp = spacePoly)
+                    sPoly = spacePoly)
 # Standard deviation
 mapSd <- mapSpace(modelLogit,
                     dims = dim(mite.envRaster)[1:2],
                     type = "sd",
-                    sp = spacePoly)
+                    sPoly = spacePoly)
 # Lower boundary of the 95% confidence interval
 map.025 <- mapSpace(modelLogit,
                     dims = dim(mite.envRaster)[1:2],
                     type = "0.025quant",
-                    sp = spacePoly)
+                    sPoly = spacePoly)
 # Upper boundary of the 95% confidence interval
 map.975 <- mapSpace(modelLogit,
                     dims = dim(mite.envRaster)[1:2],
                     type = "0.975quant",
-                    sp = spacePoly)
+                    sPoly = spacePoly)
+```
+
+```{r,  fig.width = 6, fig.height=6}
+# Colour to use for the maps
+colo <- colorRampPalette(c("grey90", "steelblue4", 
+                           "steelblue2", "steelblue1", 
+                           "gold", "red1", "red4"))(200)
+
+par(mfrow = c(2,2))
+plot(mapMean, zlim = c(0, 1), col = colo,
+     axes = FALSE, box = FALSE, main = "Mean")
+
+plot(mapSd, zlim = c(0, 1), col = colo,
+     axes = FALSE, box = FALSE, main = "Sd")
+
+plot(map.025, zlim = c(0, 1), col = colo,
+     axes = FALSE, box = FALSE, main = "2.5%")
+
+plot(map.975, zlim = c(0, 1), col = colo,
+     axes = FALSE, box = FALSE, main = "97.5")
+```
+
+By studying the mean distribution we can infer the distribution of the species in the study area, but by accounting for the standard deviation and the 95% confidence interval, we can also gain some knowledge about the area where we have high (or low) confidence in the prediction. 
+
+# Estimate the probability occurrence of a single species while including expert knowledge
+
+Expert knowledge in species distribution modelling is usually a map (a `SpatialPolygon`) defining a region where expert believe a species should be found. This *a priori* information is usually worth including in a model as a starting point. 
+
+## Formatting an expert map to be used as an offset
+
+For this vignette, we will used the expert map in `expertMEGR` that assumes that pseudospecies MEGR can be found solely in areas where the soil water content is below 400.
+
+```{r}
+data(expertMEGR)
+```
+
+Organizing the expert map for it to be used requires that a distance to the edge of the expert be calculated and that the data be formatted into an object of class `explanaMesh`. This step maybe be time consuming because calculating the distance to the edge of `SpatialPolygon`  for each pixel of a raster is generally a somewhat long process. In addition, formatting the data to an object of class `explanaMesh` can also be a little time consuming. However, this step only need to be performed once and all these steps can be performed with the `offsetExpert` function. 
+
+To best account for the expert map, the following five parameters logistic curve is used, which is designed to reduce (or emphasize) the edge of the expert maps.
+
+$$W(x) = u - \frac{u - l}{\left(1 + e^{-r(x-k)}\right)^{1/s}}$$
+
+where $u$ and $l$ are the upper and lower asymptotes of the logistic curve, $r$ is a rate that gives flexibility to the curve from a sharpe step to a flat surface and $s$ is a measure of skewness that adjust the symmetry of the decay on the edge of the expert map. As for $k$, it shifts the curve inside or outside the expert map. Finally, $x$ is the distance to the expert map.
+
+```{r, warning=FALSE, error=FALSE}
+expertWeight <- offsetExpert(expert = expertMEGR,
+                             sPointDF = MEGR01, 
+                             raster  = mite.envRaster,
+                             family = "binomial",
+                             link = "logit", 
+                             iniParam = c(upper = 0, 
+                                          lower = -1, 
+                                          rate = 1, 
+                                          shift = 2, 
+                                          skew = 3))
+```
+
+Note that the choice of of initial parameters in the argument `iniParam` is arbitrary and was used mainly to show how to use this argument. In short, the name of each of the estimated parameters need to be given.
+
+For a more refined adjutement of the expert knowledge information, additional arguments of the `bnlr` and `gnlr` can be passed directly to `offsetExpert`. 
+
+Following the construction of the expert knowledge map weighted by the logistic curve, this new information is included in the object of explanatory variable raster
+
+```{r}
+miteEnvOffset <- addLayer(mite.envRaster, expertWeight$expert)
+names(miteEnvOffset)[nlayers(miteEnvOffset)] <- "expert"
+```
+
+## Organizing the explanatory variables
+
+This step is exactly the same as for the model estimation without using an expert map, as explained above. 
+
+```{r, warning = FALSE}
+explanaOffset <- explanaMesh(sPoly = spacePoly, 
+                       mesh = Mesh, 
+                       X = miteEnvOffset)
+```
+
+
+## Building the model
+
+Now that all the pieces are organized properly we can estimate the model using `uniSpace`. As in the previous section, here we will build a logistic model. 
+
+Here, the expert knowledge is included using an offset in the model. Note that the offset is included in the model using 
+
+```{r, warning = FALSE}
+# Equation
+form <- MEGR ~ SubsDens + WatrCont + Substrate + Shrub + Topo
+
+# Model
+modelOffset <- uniSpace(form, sPointsDF = MEGR01,
+                        explanaMesh = explanaOffset,
+                        offset = "expert",
+                        family = "binomial",
+                        link = "logit", 
+                        control.compute = list(waic = TRUE))
+```
+
+Recall that `uniSpace` is essentially a specialized wrapper around the `inla` function of the R package `INLA`. As such, all arguments that can be passed to `inla` can be passed to `uniSpace`, this is why we can include arguments such as `control.compute` to calculate WAIC in the model. In addition, the WAIC is useful here because it can be used to evaluate whether including expert knowledge refines the quality of our model.
+
+More specifically, we can compare the model with and without offset
+
+```{r}
+waic <- modelLogit$waic$waic
+waicOffset <- modelOffset$waic$waic
+
+waic
+waicOffset
+```
+
+The result suggest that the offset bring important additional information.
+
+## Studying the estimated parameters
+
+As before we can study parameter estimates using the `summary` function
+ 
+```{r}
+summary(modelOffset)
+```
+
+## Species distribution map
+
+As explained before, in addition of plotting the average model, it can be valuable to also plot the standard deviation or a 95% confidence interval around the model to get a good assesment of model quality. All of these maps can be constructed using `mapSpace`.
+
+```{r}
+# Mean
+mapMean <- mapSpace(modelOffset,
+                    dims = dim(mite.envRaster)[1:2],
+                    type = "mean",
+                    sPoly = spacePoly)
+# Standard deviation
+mapSd <- mapSpace(modelOffset,
+                    dims = dim(mite.envRaster)[1:2],
+                    type = "sd",
+                    sPoly = spacePoly)
+# Lower boundary of the 95% confidence interval
+map.025 <- mapSpace(modelOffset,
+                    dims = dim(mite.envRaster)[1:2],
+                    type = "0.025quant",
+                    sPoly = spacePoly)
+# Upper boundary of the 95% confidence interval
+map.975 <- mapSpace(modelOffset,
+                    dims = dim(mite.envRaster)[1:2],
+                    type = "0.975quant",
+                    sPoly = spacePoly)
 ```
 
 ```{r,  fig.width = 6, fig.height=8}
@@ -180,7 +335,5 @@ plot(map.025, zlim = c(0, 1), col = colo,
 plot(map.975, zlim = c(0, 1), col = colo,
      axes = FALSE, box = FALSE, main = "97.5")
 ```
-
-By studying the mean distribution we can infer the distribution of the species in the study area, but by accounting for the standard deviation and the 95% confidence interval, we can also gain some knowledge about the area where we have high (or low) confidence in the prediction. 
 
 # References

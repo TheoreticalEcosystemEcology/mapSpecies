@@ -4,16 +4,18 @@
 \alias{uniSpace}
 \title{Univariate spatial model}
 \usage{
-uniSpace(formula, spdf, explanaMesh, family = NULL, link = NULL,
-  smooth = 2, prior.range = c(0.05, 0.01), prior.sigma = c(1, 0.01),
-  ...)
+uniSpace(formula, sPointsDF, explanaMesh, offset = NULL, family = NULL,
+  link = NULL, smooth = 2, prior.range = c(0.05, 0.01),
+  prior.sigma = c(1, 0.01), ...)
 }
 \arguments{
-\item{formula}{A formula that relates the response and some (or all) of the explanatory variables \code{X}. The name of the response variable is the name of the variable in \code{spdf}.}
+\item{formula}{A formula that relates the response and some (or all) of the explanatory variables \code{X}. The name of the response variable is the name of the variable in \code{sPointsDF}.}
 
-\item{spdf}{A SpatialPointsDataFrame with a vector of 0 and 1 in the data.frame part \code{stack} (or \code{brick}) combining all of the explanatory variables to consider.}
+\item{sPointsDF}{A SpatialPointsDataFrame with a vector of 0 and 1 in the data.frame part \code{stack} (or \code{brick}) combining all of the explanatory variables to consider.}
 
 \item{explanaMesh}{An object of class \code{explanaMesh}}
+
+\item{offset}{A character string defining the explanatory variable in \code{explanaMesh$X} to use as offset.}
 
 \item{family}{A character string describing the error distribution to be used when constructing the model.}
 
@@ -33,14 +35,14 @@ An object of class \code{uniSpace} that includes a model output, which is the mo
 In addition, it includes a series of attributes:
 
   \item{\code{formula}}{The formula used to construct the model}
-  \item{\code{spdf}}{The \code{SpatialPointDataFrame} object that includes the sample location and associated data for the modelled species.}
+  \item{\code{sPointsDF}}{A \code{SpatialPointDataFrame} object that includes the sample location and associated data of the modelled species.}
   \item{\code{XEst}}{A matrix with all the explanatory variables used to construct the model. If there were factors in the original set of explanatory variables \code{X}, in \code{XEst}, they were decomposed into dummy variables. The values in \code{XEst} are the one from the sampled location.}
   \item{\code{XPred}}{A matrix with all the explanatory variables used to construct the model. If there were factors in the original set of explanatory variables \code{X}, in \code{XPred}, they were decomposed into dummy variables. The values in \code{XPred} were gathered at the mesh edges.}
   \item{\code{mesh}}{An object of class \code{inla.mesh}. It is the mesh used to construct the model.}
   \item{\code{Stack}}{An object of class \code{inla.data.stack}. It is a stack object constructed internally.}
 }
 \description{
-Spatial model for presence-absence data using INLA. This function is essentially a sophisticated wrapper over \code{inla}
+Spatial model for presence-absence data using INLA. This function is essentially a specialized wrapper over \code{inla}
 }
 \details{
 The underlying model used by this function is a generalized spatial linear model using the cloglog link function. The idea to use the cloglog link function instead of another link function (e.g. logit or probit) is that it is more flexible.

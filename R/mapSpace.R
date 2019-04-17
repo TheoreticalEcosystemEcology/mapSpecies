@@ -5,13 +5,17 @@
 #' @param modelSpace An object of class \code{ppSpace} or of class \code{uniSpace}.
 #' @param dims A vector of length 2 defining the number of pixels to use as rows and columns to define the map.
 #' @param type Either "mean", "sd", "0.025quant", "0.5quant", "0.975quant" or "mode". Defines the map to be drawn.
-#' @param sp A spatial polygon to isolate the region of interest. If none is given, a map is drawn for the entire region covered by the mesh. 
+#' @param sPoly A spatial polygon to isolate the region of interest. If none is given, a map is drawn for the entire region covered by the mesh. 
 #' 
 #' @importFrom INLA inla.mesh.projector
 #' @importFrom INLA inla.mesh.project
 #' @importFrom INLA inla.stack.index
 #' @importFrom raster raster
 #' @importFrom raster mask
+#' @importFrom raster xmin
+#' @importFrom raster ymin
+#' @importFrom raster xmax
+#' @importFrom raster ymax
 #'
 #' @keywords hplot
 #' 
@@ -20,23 +24,23 @@
 mapSpace <- function(modelSpace, dims, 
                        type = c("mean", "sd", "0.025quant", 
                                 "0.5quant", "0.975quant",
-                                "mode"), sp = NULL){
+                                "mode"), sPoly = NULL){
   ### General check
   if(length(type) > 1){
     stop("Only one type should be defined")
   }
   
   ### Define map basis
-  if(is.null(sp)){
+  if(is.null(sPoly)){
     mapBasis <- inla.mesh.projector(attributes(modelSpace)$mesh,
                                     dims = dims,
-                                    crs = crs(attributes(modelSpace)$spdf))
+                                    crs = attributes(modelSpace)$mesh$crs)
   }else{
     mapBasis <- inla.mesh.projector(attributes(modelSpace)$mesh,
                                     dims = dims,
-                                    xlim = c(xmin(sp), xmax(sp)),
-                                    ylim = c(ymin(sp), ymax(sp)),
-                                    crs = crs(attributes(modelSpace)$spdf))
+                                    xlim = c(xmin(sPoly), xmax(sPoly)),
+                                    ylim = c(ymin(sPoly), ymax(sPoly)),
+                                    crs = attributes(modelSpace)$mesh$crs)
   }
   
   ### Find the mesh edges on which predictions should be made

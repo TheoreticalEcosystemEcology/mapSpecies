@@ -4,7 +4,7 @@
 \alias{ppSpaceTimeLarge}
 \title{Spatio-temporal point process model for large data}
 \usage{
-ppSpaceTimeLarge(formula, y, weightPP, explanaMesh, meshTime, smooth = 2,
+ppSpaceTimeLarge(formula, y, ppWeight, explanaMesh, meshTime, smooth = 2,
   prior.range = c(0.05, 0.01), prior.sigma = c(1, 0.01),
   prior.pccor = c(0.7, 0.7), ...)
 }
@@ -13,9 +13,9 @@ ppSpaceTimeLarge(formula, y, weightPP, explanaMesh, meshTime, smooth = 2,
 
 \item{y}{A 3-columns matrix defining the x and y coordinates of where a species was found and the last column represents the time (generally in days of the year) when a species was found.}
 
-\item{weightPP}{An object of class \code{\link{weightPP}}}
+\item{ppWeight}{An object of class \code{\link{ppWeight}}}
 
-\item{explanaMesh}{An object of class \code{dataPrep}}
+\item{explanaMesh}{An object of class \code{explanaMesh}}
 
 \item{meshTime}{An object of class \code{\link{inla.mesh.1d}}}
 
@@ -29,7 +29,7 @@ ppSpaceTimeLarge(formula, y, weightPP, explanaMesh, meshTime, smooth = 2,
 
 \item{\dots}{Arguments passed to \code{inla}}
 
-\item{sp}{A \code{SpatialPolygons} or \code{SpatialPolygonsDataFrame}}
+\item{sPoly}{A \code{SpatialPolygons} or \code{SpatialPolygonsDataFrame}}
 }
 \value{
 A list including an \code{\link{inla}} object, an\code{\link{inla.stack}} object, an \code{\link{inla.mesh.2d}} object for the spatial component of the model and an \code{\link{inla.mesh.1d}} object for the temporal component of the model.

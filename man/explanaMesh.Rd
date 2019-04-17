@@ -4,10 +4,10 @@
 \alias{explanaMesh}
 \title{Prepare data for model construction}
 \usage{
-explanaMesh(sp, mesh, X, verbose = TRUE)
+explanaMesh(sPoly, mesh, X, verbose = TRUE)
 }
 \arguments{
-\item{sp}{A \code{SpatialPolygons} or a \code{SpatialPolygonsDataFrame}}
+\item{sPoly}{A \code{\link[sp]{SpatialPolygons}} or a \code{\link[sp]{SpatialPolygonsDataFrame}} defining the sampling region.}
 
 \item{mesh}{An \code{inla.mesh} object}
 
@@ -15,12 +15,15 @@ explanaMesh(sp, mesh, X, verbose = TRUE)
 
 \item{verbose}{Logical. Whether or not to print on the screen (five times) the number of edges that have been assigned values.}
 }
+\value{
+An object of class \code{explanaMesh} that includes a list of all the objects used as arguments (except for the verbose call) and \code{Xmesh} the values of the explanatory variables for all edges of the mesh.
+}
 \description{
 Prepare and organise the data for model prediction. This function is meant to be used as a starting point for all spatial and spatiotemporal model in this package. This function also gathers explanatory variables values associated to the edges within and outside the area of interest.
 }
 \details{
 The time it takes to run this function is directly related to the number of vertex (points) in the mesh; more specifically the ones outside the region of interest.
 
-Also, this function checks the projections of \code{sp}, \code{mesh} and \code{X} to make sure they match. Note that if all projections are NAs, the function will run but warnings messages will be printed on screen related to this.
+Also, this function checks the projections of \code{sPoly}, \code{mesh} and \code{X} to make sure they match. Note that if all projections are NAs, the function will run but warnings messages will be printed on screen related to this.
 }
 \keyword{manip}

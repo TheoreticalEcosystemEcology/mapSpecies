@@ -4,6 +4,7 @@
 #' @description Extracts a summary of the model parameters estimated with the \code{\link{ppSpace}} function.
 #' 
 #' @param object An object of class \code{\link{ppSpace}}
+#' @param \dots Additional arguments affecting the summary produced.
 #' 
 #' @details
 #' 
@@ -27,7 +28,7 @@
 #' @keywords manip
 #' 
 #' @export
-summary.ppSpace <- function(object){
+summary.ppSpace <- function(object,...){
   # Extract the parameters associated to the explanatory variables
   fixed <- object$summary.fixed
   

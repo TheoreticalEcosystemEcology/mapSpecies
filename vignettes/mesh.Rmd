@@ -61,7 +61,8 @@ For our illustration, let's first build a `SpatialPolygons` outlining the sampli
 ```{r}
 poly <- Polygon(matrix(c(0,0,2.6,2.6,0,0,10,10,0,0), 
                        nrow = 5, ncol = 2))
-spacePoly <- SpatialPolygons(list(Polygons(list(poly), ID = 1)))
+spacePoly <- SpatialPolygons(list(Polygons(list(poly), ID = 1)),
+                             proj4string = crs(mite.envRaster))
 ```
 
 Using `spacePoly`, let's construct the mesh. Usually, constructing the mesh requires a few trials to get exactly what is needed for the species understudy. So, do not despair!
@@ -82,28 +83,32 @@ Using only `max.edge` and `offset` to define the mesh, it is possible to obtain 
 
 ```{r}
 meshPoly1 <- inla.mesh.2d(boundary = spacePoly, max.edge = 2,
-                          offset = c(2,2))
+                          offset = c(2,2), cutoff = 0.5,
+                          crs = crs(mite.envRaster))
 meshPoly2 <- inla.mesh.2d(boundary = spacePoly, max.edge = 2,
-                          offset = c(1,1))
+                          offset = c(1,1), cutoff = 0.5,
+                          crs = crs(mite.envRaster))
 meshPoly3 <- inla.mesh.2d(boundary = spacePoly, max.edge = 0.5,
-                          offset = c(2,2))
+                          offset = c(2,2), cutoff = 0.5,
+                          crs = crs(mite.envRaster))
 meshPoly4 <- inla.mesh.2d(boundary = spacePoly, max.edge = 0.5,
-                          offset = c(1,1))
+                          offset = c(1,1), cutoff = 0.5,
+                          crs = crs(mite.envRaster))
 ```
 
 ```{r, fig.width = 6, fig.height=6}
 par(mfrow = c(2,2), mar = c(1,1,1,1))
 
-plot(meshPoly1, main = "")
+plot(meshPoly1, main = "", asp = 1)
 points(coordinates(mite.spdf), pch = 19, col = "red")
 
-plot(meshPoly2, main = "")
+plot(meshPoly2, main = "", asp = 1)
 points(coordinates(mite.spdf), pch = 19, col = "red")
 
-plot(meshPoly3, main = "")
+plot(meshPoly3, main = "", asp = 1)
 points(coordinates(mite.spdf), pch = 19, col = "red")
 
-plot(meshPoly4, main = "")
+plot(meshPoly4, main = "", asp = 1)
 points(coordinates(mite.spdf), pch = 19, col = "red")
 ```
 
@@ -123,18 +128,20 @@ Note that `meshPoly4` is probably a good candidate at this point because it is a
 This can be done using the argument `loc`
 ```{r}
 meshLoc1 <- inla.mesh.2d(loc = mite.spdf, max.edge = 2,
-                         offset = c(1,1))
+                         offset = c(1,1), cutoff = 0.5,
+                         crs = crs(mite.envRaster))
 meshLoc2 <- inla.mesh.2d(loc = mite.spdf, max.edge = 0.5,
-                         offset = c(1,1))
+                         offset = c(1,1), cutoff = 0.5,
+                         crs = crs(mite.envRaster))
 ```
 
 ```{r, fig.width = 6, fig.height=3}
 par(mfrow = c(1,2), mar = c(1,1,1,1))
 
-plot(meshLoc1, main = "")
+plot(meshLoc1, main = "", asp = 1)
 points(coordinates(mite.spdf), pch = 19, col = "red")
 
-plot(meshLoc2, main = "")
+plot(meshLoc2, main = "", asp = 1)
 points(coordinates(mite.spdf), pch = 19, col = "red")
 
 # Number of edges in the mesh
@@ -146,23 +153,26 @@ or the argument `loc.domain`
 
 ```{r}
 meshDom1 <- inla.mesh.2d(loc.domain = mite.spdf, max.edge = 2,
-                         offset = c(1,1), crs = CRS("+proj=longlat +datum=NAD27"))
+                         offset = c(1,1), cutoff = 0.5,
+                         crs = crs(mite.envRaster))
 meshDom2 <- inla.mesh.2d(loc.domain = mite.spdf, max.edge = 0.6,
-                         offset = c(1,1))
+                         offset = c(1,1), cutoff = 0.5,
+                         crs = crs(mite.envRaster))
 meshDom3 <- inla.mesh.2d(loc.domain = mite.spdf, max.edge = 0.5,
-                         offset = c(0.5,0.5))
+                         offset = c(0.5,0.5), cutoff = 0.5,
+                         crs = crs(mite.envRaster))
 ```
 
 ```{r, fig.width = 6, fig.height=3}
 par(mfrow = c(1,3), mar = c(1,1,1,1))
 
-plot(meshDom1, main = "")
+plot(meshDom1, main = "", asp = 1)
 points(coordinates(mite.spdf), pch = 19, col = "red")
 
-plot(meshDom2, main = "")
+plot(meshDom2, main = "", asp = 1)
 points(coordinates(mite.spdf), pch = 19, col = "red")
 
-plot(meshDom3, main = "")
+plot(meshDom3, main = "", asp = 1)
 points(coordinates(mite.spdf), pch = 19, col = "red")
 
 # Number of edges in the mesh

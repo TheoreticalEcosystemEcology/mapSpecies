@@ -1,3 +1,5 @@
+#' @importFrom parallel mclapply
+
 inla.mesh.dual <- function(mesh) {
 ### Function obtained from : http://www.math.ntnu.no/inla/ r-inla.org/tutorials/spde/R/spde-tutorial-functions.R
 ###

@@ -5,7 +5,7 @@
 \title{Construct maps for spatial point process models}
 \usage{
 mapSpaceTime(spaceTimeModel, dims, type = c("mean", "sd", "0.025quant",
-  "0.5quant", "0.975quant", "mode"), sp = NULL)
+  "0.5quant", "0.975quant", "mode"), sPoly = NULL)
 }
 \arguments{
 \item{spaceTimeModel}{An object of class \code{spatialTimePP}.}
@@ -14,7 +14,7 @@ mapSpaceTime(spaceTimeModel, dims, type = c("mean", "sd", "0.025quant",
 
 \item{type}{Either "mean", "sd", "0.025quant", "0.5quant", "0.975quant" or "mode". Defines the map to be drawn.}
 
-\item{sp}{A spatial polygon to isolate the region of interest. If none is given, a map is drawn for the entire region covered by the mesh.}
+\item{sPoly}{A spatial polygon to isolate the region of interest. If none is given, a map is drawn for the entire region covered by the mesh.}
 }
 \description{
 Constructs mean and standard deviation maps for spatial point process models

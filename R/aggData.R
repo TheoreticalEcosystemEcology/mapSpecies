@@ -20,7 +20,8 @@ aggData <- function(xyt, meshSpace, meshTime=NULL){
   ### Find Dirichlet tesselation of the mesh
   #=========================================
   ### Build Delaunay and Dirichlet
-  DelauDirich <- deldir(meshSpace$loc[,1], meshSpace$loc[,2])
+  DelauDirich <- deldir(meshSpace$loc[,1], meshSpace$loc[,2],
+                        suppressMsge = TRUE)
   
   ### Dirichlet tiles
   tiles <- tile.list(DelauDirich)

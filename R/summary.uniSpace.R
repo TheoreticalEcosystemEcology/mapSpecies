@@ -4,6 +4,7 @@
 #' @description Extracts a summary of the model parameters estimated with the \code{\link{uniSpace}} function.
 #' 
 #' @param object An object of class \code{\link{uniSpace}}
+#' @param \dots Additional arguments affecting the summary produced.
 #' 
 #' @details
 #' 
@@ -27,12 +28,9 @@
 #' @keywords manip
 #' 
 #' @export
-summary.uniSpace <- function(object){
+summary.uniSpace <- function(object,...){
   # Extract the parameters associated to the explanatory variables
   fixed <- object$summary.fixed
-  
-  # Rename the rows
-  rownames(fixed)[-1] <- colnames(attributes(object)$XEst)
   
   # Extract the parameters associated to the spatial components
   space <- object$summary.hyperpar

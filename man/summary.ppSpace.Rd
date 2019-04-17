@@ -4,10 +4,12 @@
 \alias{summary.ppSpace}
 \title{Model summary for object of class \code{ppSpace}}
 \usage{
-\method{summary}{ppSpace}(object)
+\method{summary}{ppSpace}(object, ...)
 }
 \arguments{
 \item{object}{An object of class \code{\link{ppSpace}}}
+
+\item{\dots}{Additional arguments affecting the summary produced.}
 }
 \value{
 A list with the following structure 

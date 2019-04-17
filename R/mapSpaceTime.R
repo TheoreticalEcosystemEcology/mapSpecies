@@ -5,13 +5,14 @@
 #' @param spaceTimeModel An object of class \code{spatialTimePP}.
 #' @param dims A vector of length 2 defining the number of pixels in rows and columns of the map.
 #' @param type Either "mean", "sd", "0.025quant", "0.5quant", "0.975quant" or "mode". Defines the map to be drawn.
-#' @param sp A spatial polygon to isolate the region of interest. If none is given, a map is drawn for the entire region covered by the mesh. 
+#' @param sPoly A spatial polygon to isolate the region of interest. If none is given, a map is drawn for the entire region covered by the mesh. 
 #' 
 #' @importFrom INLA inla.mesh.projector
 #' @importFrom INLA inla.mesh.project
 #' @importFrom INLA inla.stack.index
 #' @importFrom raster raster
 #' @importFrom raster mask
+#' @importFrom raster stack
 #'
 #' @keywords hplot
 #' 
@@ -20,7 +21,7 @@
 mapSpaceTime <- function(spaceTimeModel, dims, 
                          type = c("mean", "sd", "0.025quant", 
                                 "0.5quant", "0.975quant",
-                                "mode"), sp = NULL){
+                                "mode"), sPoly = NULL){
   ### General check
   if(length(type) > 1){
     stop("Only one type should be defined")
@@ -52,8 +53,8 @@ mapSpaceTime <- function(spaceTimeModel, dims,
   mapRaster <- stack(mapPred)
   
   ### Isolate region of interest
-  if(!is.null(sp)){
-    mapRaster <- mask(mapRaster, sp)
+  if(!is.null(sPoly)){
+    mapRaster <- mask(mapRaster, sPoly)
   }
   
   ### Return

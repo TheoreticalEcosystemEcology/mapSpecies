@@ -4,10 +4,12 @@
 \alias{summary.uniSpace}
 \title{Model summary for object of class \code{uniSpace}}
 \usage{
-\method{summary}{uniSpace}(object)
+\method{summary}{uniSpace}(object, ...)
 }
 \arguments{
 \item{object}{An object of class \code{\link{uniSpace}}}
+
+\item{\dots}{Additional arguments affecting the summary produced.}
 }
 \value{
 A list with the following structure 

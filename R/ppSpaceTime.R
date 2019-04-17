@@ -5,7 +5,7 @@
 #'
 #' @param formula A formula that only relates the response \code{y} and some (or all) of the explanatory variables \code{X}. A paricularity of the is formula is that the response has to be defined as \code{y}.
 #' @param y A 3-columns matrix defining the x and y coordinates of where a species was found and the last column represents the time (generally in days of the year) when a species was found.
-#' @param weightPP An object of class \code{\link{weightPP}}
+#' @param ppWeight An object of class \code{\link{ppWeight}}
 #' @param explanaMesh An object of class \code{dataPrep}
 #' @param meshTime An object of class \code{\link{inla.mesh.1d}}
 #' @param smooth A single value ranging between 0 and 2 passed to \code{inla.spde2.pcmatern}. It defines the smoothness of the Matern SPDE model. Default is set at 2.
@@ -18,10 +18,17 @@
 #' 
 #' A list including an \code{\link{inla}} object, an\code{\link{inla.stack}} object, an \code{\link{inla.mesh.2d}} object for the spatial component of the model and an \code{\link{inla.mesh.1d}} object for the temporal component of the model.
 #' 
+#' @importFrom INLA inla.mesh.fem
+#' @importFrom INLA inla.stack.A
+#' @importFrom INLA inla.stack.data
+#' @importFrom stats model.matrix
+#' @importFrom stats model.frame
+#' @importFrom Matrix rBind
+#' 
 #' @export
 #' 
 #' @keywords models
-ppSpaceTime <- function(formula, y, weightPP, explanaMesh, 
+ppSpaceTime <- function(formula, y, ppWeight, explanaMesh, 
                         meshTime, smooth = 2,
                         prior.range = c(0.05, 0.01),
                         prior.sigma = c(1, 0.01),
@@ -34,9 +41,9 @@ ppSpaceTime <- function(formula, y, weightPP, explanaMesh,
     stop("'y' should be used to define the response variable")
   }
   
-  ### Check if the mesh in weightPP and explanaMesh are the same
-  if(!identical(weightPP$mesh$graph, explanaMesh$mesh$graph)){
-    stop("'weightPP' and 'explanaMesh' were constructed using different mesh")
+  ### Check if the mesh in ppWeight and explanaMesh are the same
+  if(!identical(ppWeight$mesh$graph, explanaMesh$mesh$graph)){
+    stop("'ppWeight' and 'explanaMesh' were constructed using different mesh")
   }
   
   if(colnames(y)[1] != "x" && colnames(y)[2] != "y" && colnames(y)[3] != "t"){
@@ -54,13 +61,13 @@ ppSpaceTime <- function(formula, y, weightPP, explanaMesh,
   ### Basic objects
   #================
   ny <- nrow(y)
-  nSpaceEdges <- weightPP$mesh$n
+  nSpaceEdges <- ppWeight$mesh$n
   nTimeEdges <- meshTime$n
   
   #==============
   ### Define SPDE
   #==============
-  SPDE <- inla.spde2.pcmatern(mesh=weightPP$mesh, alpha=smooth,
+  SPDE <- inla.spde2.pcmatern(mesh=ppWeight$mesh, alpha=smooth,
                               prior.range=prior.range,
                               prior.sigma=prior.range)
   
@@ -77,7 +84,7 @@ ppSpaceTime <- function(formula, y, weightPP, explanaMesh,
   #________________________________________________________________
   ### Define spatiotemporal volume to distribute weight across time 
   #________________________________________________________________
-  spaceTimeWeight <- rep(weightPP$weight, nTimeEdges) * 
+  spaceTimeWeight <- rep(ppWeight$weight, nTimeEdges) * 
                      rep(diag(inla.mesh.fem(meshTime)$c0), 
                          nSpaceEdges)
   
@@ -100,26 +107,26 @@ ppSpaceTime <- function(formula, y, weightPP, explanaMesh,
   Xbrick <- rasterFromXYZ(xyXorg)
   
   ### Extract covariate values for model estimation
-  meshLoc <- weightPP$mesh$loc[,1:2]
+  meshLoc <- ppWeight$mesh$loc[,1:2]
   meshLocBase <- meshLoc
   
   for(i in 1:(nTimeEdges-1)){
     meshLoc <- rbind(meshLoc,meshLocBase)
   }
   
-  locEst <- SpatialPoints(coords = rbind(weightPP$mesh$loc[,1:2],
+  locEst <- SpatialPoints(coords = rbind(ppWeight$mesh$loc[,1:2],
                                          cbind(y$x,y$y)))
   XEst <- extract(Xbrick, locEst)
   
   ### Extract covariate values for model prediction
-  locPred <- SpatialPoints(coords = weightPP$mesh$loc[,1:2])
+  locPred <- SpatialPoints(coords = ppWeight$mesh$loc[,1:2])
   XPred <- explanaMesh$Xmesh
   
   #===========================
   ### Define projection matrix
   #===========================
   ### For inference
-  ProjInfer <- inla.spde.make.A(weightPP$mesh, 
+  ProjInfer <- inla.spde.make.A(ppWeight$mesh, 
                                 loc = cbind(y$x, y$y), 
                                 n.group = length(meshTime$n),
                                 group = y$time, 
