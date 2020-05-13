@@ -35,6 +35,7 @@ ppWeight <- function(sPoly, mesh){
   for(i in 1:length(dmesh)){
     if(gIntersects(dmesh[i,], sPoly)){
       weight[i] <- gArea(gIntersection(dmesh[i,], sPoly))
+      print(i)
     }else{
       weight[i] <- 0
     }

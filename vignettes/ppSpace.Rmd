@@ -18,15 +18,17 @@ bibliography: biblio.bib
 
 ```{r, echo=FALSE, message=FALSE, results='hide', purl=FALSE}
 knitr::opts_chunk$set(cache=F,fig.width=5,fig.height=5,dpi=125)
+
+set.seed(123)
 ```
 
 # Introduction
 
 This particular vignette was written to explain how to build point process species distribution models using `mapSpecies`. In essence, this vignette shows how to use the `ppSpace` function and a few helper functions to build models. 
 
-The modelling approach implemented in the `uniSpace` function is essentially a specialized wrapper around the `INLA` R package so that it can be easier to construct point process models as they were presented by @simpson_going_2016. 
+The modelling approach implemented in the `ppSpace` function is essentially a specialized wrapper around the `INLA` R package so that it can be easier to construct point process models as they were presented by @simpson_going_2016. 
 
-To illustrate how the models are constructed, the mite data will be used.
+To illustrate how the models are constructed, the *Tinamus solitarius* data, available in the `bossMaps`, will be used.
 
 # Load R package for the analysis
 
@@ -36,51 +38,37 @@ library(mapSpecies)
 
 # Data
 
+# REwrite this section based on the new data used
+
 The data used here comes from @borcard_environmental_1994. For the purpose of this illustration, substrate density and water content (the two continuous variables) have been interpolated across the sampling area with kriging while the class variables were reconstructed from Figure 1 of @borcard_environmental_1994. These data are all available in `mite.envRaster` a `RasterStack`. As for the species data, the sampled coordinates and the species abundances available in the `vegan` R package were organized in a `SpatialPointDataFrame` and are available in `mite.spdf`.
 
 ## Species data
 
 ```{r}
+library(bossMaps)
+
 # Load species data
-data(mite.spdf)
+data(Tinamus_solitarius_points)
 ```
 
 ## Environmental data
 
 ```{r}
 # Environmental data
-data(mite.envRaster)
+data(Tinamus_solitarius_env)
 ```
+
+Note that if some explanatory variables are factors, to preserve there structure as factors, a `RasterStack` needs to be used because a `RasterBrick` will convert the data into a matrix and the factor level information will be lost.
 
 ## Sampling region
 
 For our illustration, let's also build a `SpatialPolygons` outlining the sampling area. This will become handy for a few steps when performing the analysis.
 
 ```{r}
-poly <- Polygon(matrix(c(0,0,2.6,2.6,0,0,10,10,0,0), 
-                       nrow = 5, ncol = 2))
-spacePoly <- SpatialPolygons(list(Polygons(list(poly), ID = 1)))
-```
+rasterForPoly <- Tinamus_solitarius_env[[1]]
+values(rasterForPoly) <- ifelse(is.na(values(rasterForPoly)), NA, 1)
 
-# Estimate the probability occurrence of a single species
-
-For the sake of this illustration, we will focus solely on the pseudospecies coded as MEGR. As such, a new `SpatialPoints` will be constructed to focus on MEGR. For illustration purposes, the data was also constructed to account for the species abundance. Note that in practice we would **never** used data such as these and and this way with point process models, but I decided to do use this data solely to illustrate how the functions are used. 
-
-To be very clear: **NEVER** convert abundance or presence-absence data to presence-only data. It is much more informative to use abundance or presence-absence data.
-
-```{r}
-set.seed(123)
-
-# Build a set of coordinates
-coordRep <- rep(as.numeric(rownames(mite.spdf@data)),
-                mite.spdf@data[,7])
-MEGRxy <- jitter(coordinates(mite.spdf[7])[coordRep,], factor = 20)
-rownames(MEGRxy) <- 1:nrow(MEGRxy)
-
-# *** THE CODE ABOVE SHOULD NEVER BE USED FOR ECOLOGICAL MODELS ***
-
-# Construct a SpatialPoints object
-MEGR <- SpatialPoints(MEGRxy)
+spacePoly <- rasterToPolygons(rasterForPoly, dissolve = TRUE)
 ```
 
 ## Building the mesh
@@ -92,16 +80,26 @@ Properly choosing the structure of the mesh is essential for the model estimatio
 For our illustration, let's use the following mesh.
 
 ```{r}
-Mesh <- inla.mesh.2d(loc.domain = coordinates(mite.spdf),
-                     max.edge = 0.5,
-                     offset = c(0.8,0.8))
+regionBorder <- extent(spacePoly)
+xyBasis <- rbind(cbind(c(xmin(spacePoly),xmax(spacePoly),
+                         xmin(spacePoly),xmax(spacePoly)),
+                       c(ymin(spacePoly),ymax(spacePoly), 
+                         ymax(spacePoly),ymin(spacePoly))),
+                 coordinates(Tinamus_solitarius_points))
+
+Mesh <- inla.mesh.2d(loc.domain = xyBasis,
+                     max.edge = 2,
+                     min.angle = 20,
+                     cutoff = 0.5,
+                     offset = c(5,5),
+                     crs = crs(spacePoly))
 ```
 
 ```{r, fig.width = 3, fig.height=3}
 par(mar = c(1,1,1,1))
 
 plot(Mesh, main = "", asp = 1)
-points(coordinates(MEGR), pch = 19, col = "red")
+points(coordinates(Tinamus_solitarius_points), pch = 19, col = "red")
 
 # Number of edges in the mesh
 Mesh$n
@@ -118,7 +116,7 @@ Note that running the `explanaMesh` function may take a bit of time.
 ```{r}
 explana <- explanaMesh(sPoly = spacePoly, 
                        mesh = Mesh, 
-                       X = mite.envRaster)
+                       X = Tinamus_solitarius_env)
 ```
 
 ## Calculating weights associated to each edges of the mesh
@@ -136,7 +134,7 @@ Note that the dual mesh shows some similarity with a Voronoï diagram.
 
 To calculate the area of the cell associated to each mesh edge, we need to use the `ppWeight` function.
 
-```{r}
+```{r, warning=FALSE}
 weight <- ppWeight(sPoly = spacePoly, mesh = Mesh)
 ```
 
@@ -155,12 +153,12 @@ A particularity of `ppSpace` is that in the formula, the response variable has t
 Below two models were estimated with the sole difference that one was estimated using the argument `many = TRUE`. The idea here is to show the differences in results but also in speed. 
 
 ```{r, warning = FALSE}
-modelPP <- ppSpace(y ~ ., sPoints = MEGR,
+modelPP <- ppSpace(y ~ ., sPoints = Tinamus_solitarius_points,
                    explanaMesh = explana,
                    ppWeight = weight,
                    control.compute = list(waic = TRUE))
 
-modelPPmany <- ppSpace(y ~ ., sPoints = MEGR,
+modelPPmany <- ppSpace(y ~ ., sPoints = Tinamus_solitarius_points,
                    explanaMesh = explana,
                    ppWeight = weight,
                    many = TRUE,
@@ -194,26 +192,37 @@ As can be seen the model parameters are different but the time it took to run th
 To get a good idea of the quality of the map resulting from the model, in addition of plotting the average model, it can be valuable to also plot the standard deviation or a 95% confidence interval around the model. All of these maps can be constructed using `mapSpace`.
 
 ```{r}
+#--------------------------
+# Construct prediction maps
+#--------------------------
 # Mean
 mapMean <- mapSpace(modelPP,
-                    dims = dim(mite.envRaster)[1:2],
+                    dims = dim(Tinamus_solitarius_env)[1:2],
                     type = "mean",
                     sPoly = spacePoly)
 # Standard deviation
 mapSd <- mapSpace(modelPP,
-                    dims = dim(mite.envRaster)[1:2],
+                    dims = dim(Tinamus_solitarius_env)[1:2],
                     type = "sd",
                     sPoly = spacePoly)
 # Lower boundary of the 95% confidence interval
 map.025 <- mapSpace(modelPP,
-                    dims = dim(mite.envRaster)[1:2],
+                    dims = dim(Tinamus_solitarius_env)[1:2],
                     type = "0.025quant",
                     sPoly = spacePoly)
 # Upper boundary of the 95% confidence interval
 map.975 <- mapSpace(modelPP,
-                    dims = dim(mite.envRaster)[1:2],
+                    dims = dim(Tinamus_solitarius_env)[1:2],
                     type = "0.975quant",
                     sPoly = spacePoly)
+
+#--------------------------------------
+# Cut raster with polygon of the region
+#--------------------------------------
+mapMaskMean <- mask(mapMean, spacePoly)
+mapMaskSd <- mask(mapSd, spacePoly)
+mapMask.025 <- mask(map.025, spacePoly)
+mapMask.975 <- mask(map.975, spacePoly)
 ```
 
 ```{r,  fig.width = 6, fig.height=8}
@@ -223,19 +232,21 @@ colo <- colorRampPalette(c("grey90", "steelblue4",
                            "gold", "red1", "red4"))(200)
 
 par(mfrow = c(2,2), mar = c(1,1,5,8))
-plot(mapMean, col = colo, zlim = c(0,27), 
+plot(mapMaskMean, col = colo, zlim = c(0, 8.4),
      axes = FALSE, box = FALSE, main = "Mean")
 
-plot(mapSd, col = colo, zlim = c(0,27), 
+plot(mapMaskSd, col = colo,  zlim = c(0, 8.4),
      axes = FALSE, box = FALSE, main = "Sd")
 
-plot(map.025, col = colo, zlim = c(0,27), 
+plot(mapMask.025, col = colo,  zlim = c(0, 8.4),
      axes = FALSE, box = FALSE, main = "2.5%")
 
-plot(map.975, col = colo, zlim = c(0,27), 
+plot(mapMask.975, col = colo,  zlim = c(0, 8.4),
      axes = FALSE, box = FALSE, main = "97.5")
 ```
 
 By studying the mean distribution we can infer the distribution of the species in the study area, but by accounting for the standard deviation and the 95% confidence interval, we can also gain some knowledge about the area where we have high (or low) confidence in the prediction. 
+
+Note that the map presents an intensity rather than a probability of occurrence.
 
 # References

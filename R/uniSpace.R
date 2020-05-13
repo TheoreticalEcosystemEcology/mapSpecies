@@ -142,7 +142,7 @@ uniSpace <- function(formula,
     colnames(XPred)[ncol(XPred)] <- offset
   }
   
-  XPred <- as.data.frame(cbind(Intercept = 1, XPred))
+  XPred <- as.data.frame(XPred)
   
   #=====================
   ### Construct A matrix
